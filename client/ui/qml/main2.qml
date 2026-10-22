@@ -255,6 +255,24 @@ Window  {
     }
 
     Connections {
+        target: Sane4ekController
+
+        function onOperationFinished(success, message) {
+            if (success) {
+                PageController.showNotificationMessage(message)
+            } else {
+                PageController.showErrorMessage(message)
+            }
+        }
+
+        function onRefreshFinished(success) {
+            if (success) {
+                PageController.goToPageHome()
+            }
+        }
+    }
+
+    Connections {
         target: PageController
 
         function onUnsupportedConnectDrawerRequested() {

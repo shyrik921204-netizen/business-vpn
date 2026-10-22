@@ -108,6 +108,55 @@ PageType {
         anchors.fill: parent
         anchors.bottomMargin: collapsedBar.height
 
+        // Sane4ek: publish the server list to all servers (administrator only)
+        Sane4ekRoundButton {
+            id: sane4ekUploadButton
+            objectName: "sane4ekUploadButton"
+
+            property bool lastUsed: false
+
+            z: 1
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.topMargin: 12 + PageController.safeAreaTopMargin
+            anchors.leftMargin: 16
+
+            visible: Sane4ekController.isAdmin
+            enabled: !Sane4ekController.busy
+            busy: lastUsed && Sane4ekController.busy
+            icon.source: "qrc:/images/controls/upload.svg"
+
+            onClicked: {
+                sane4ekRefreshButton.lastUsed = false
+                lastUsed = true
+                Sane4ekController.upload()
+            }
+        }
+
+        // Sane4ek: fetch the current server list with personal keys
+        Sane4ekRoundButton {
+            id: sane4ekRefreshButton
+            objectName: "sane4ekRefreshButton"
+
+            property bool lastUsed: false
+
+            z: 1
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.topMargin: 12 + PageController.safeAreaTopMargin
+            anchors.rightMargin: 16
+
+            enabled: !Sane4ekController.busy
+            busy: lastUsed && Sane4ekController.busy
+            icon.source: "qrc:/images/controls/refresh-cw.svg"
+
+            onClicked: {
+                sane4ekUploadButton.lastUsed = false
+                lastUsed = true
+                Sane4ekController.refresh()
+            }
+        }
+
         ColumnLayout {
             objectName: "homeColumnLayout"
 

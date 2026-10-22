@@ -11,6 +11,7 @@
         <file>Components/PromoBanner.qml</file>
         <file>Components/ConnectButton.qml</file>
         <file>Components/CoolSmiley.qml</file>
+        <file>Components/Sane4ekRoundButton.qml</file>
         <file>Components/ConnectionTypeSelectionDrawer.qml</file>
         <file>Components/CountryListStickyHeader.qml</file>
         <file>Components/CountrySearchRow.qml</file>
@@ -159,6 +160,7 @@
         <file>Pages2/PageSettingsNewsNotifications.qml</file>
         <file>Pages2/PageSettingsNewsDetail.qml</file>
         <file>Pages2/PageUpdate.qml</file>
+        <file>Pages2/PageSane4ekInvites.qml</file>
         <file>Pages2/PageProtocolAwgClientSettings.qml</file>
         <file>Pages2/PageProtocolWireGuardClientSettings.qml</file>
         <file>Pages2/PageSetupWizardApiFreeInfo.qml</file>

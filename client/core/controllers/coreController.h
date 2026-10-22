@@ -46,6 +46,7 @@
 #include "core/controllers/selfhosted/installController.h"
 #include "core/controllers/settingsController.h"
 #include "core/controllers/localProxyController.h"
+#include "core/controllers/sane4ekController.h"
 #include "core/controllers/connectionController.h"
 #include "core/controllers/updateController.h"
 
@@ -174,6 +175,7 @@ private:
     PageController* m_pageController;
     InstallUiController* m_installUiController;
     ImportUiController* m_importController;
+    Sane4ekController* m_sane4ekController = nullptr;
     ImportController* m_importCoreController;
     ExportUiController* m_exportUiController;
     SettingsUiController* m_settingsUiController;

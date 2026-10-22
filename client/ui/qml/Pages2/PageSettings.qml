@@ -109,6 +109,7 @@ PageType {
         application,
         news,
         backup,
+        sane4ekInvites,
         about,
         devConsole
     ]
@@ -171,6 +172,17 @@ PageType {
         property bool isVisible: true
         readonly property var clickedHandler: function() {
             PageController.goToPage(PageEnum.PageSettingsBackup)
+        }
+    }
+
+    QtObject {
+        id: sane4ekInvites
+
+        property string title: qsTr("Invites")
+        readonly property string leftImagePath: "qrc:/images/controls/share-2.svg"
+        property bool isVisible: Sane4ekController.isAdmin
+        readonly property var clickedHandler: function() {
+            PageController.goToPage(PageEnum.PageSane4ekInvites)
         }
     }
 

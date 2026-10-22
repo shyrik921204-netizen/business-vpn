@@ -3688,6 +3688,10 @@ Create one from the current settings.</source>
         <source>Dev console</source>
         <translation>Консоль разработчика</translation>
     </message>
+    <message>
+        <source>Invites</source>
+        <translation>Приглашения</translation>
+    </message>
 </context>
 <context>
     <name>PageSettingsAbout</name>
@@ -7706,6 +7710,140 @@ Remove the server from the app to continue.</source>
         <location filename="../ui/qml/main2.qml" line="320"/>
         <source>Cannot remove server during active connection</source>
         <translation>Невозможно удалить сервер во время активного соединения</translation>
+    </message>
+</context>
+<context>
+    <name>Sane4ekController</name>
+    <message>
+        <source>No servers with AmneziaWG and SSH access</source>
+        <translation>Нет серверов с AmneziaWG и доступом по SSH</translation>
+    </message>
+    <message>
+        <source>Failed to create the signing key</source>
+        <translation>Не удалось создать ключ подписи</translation>
+    </message>
+    <message>
+        <source>Invite</source>
+        <translation>Приглашение</translation>
+    </message>
+    <message numerus="yes">
+        <source>Uploaded to %n server(s)</source>
+        <translation>
+            <numerusform>Загружено на %n сервер</numerusform>
+            <numerusform>Загружено на %n сервера</numerusform>
+            <numerusform>Загружено на %n серверов</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Upload failed: %1</source>
+        <translation>Не удалось загрузить: %1</translation>
+    </message>
+    <message>
+        <source>Uploaded to %1 of %2 servers. Failed: %3</source>
+        <translation>Загружено на %1 из %2 серверов. Не удалось: %3</translation>
+    </message>
+    <message>
+        <source>Invalid invite</source>
+        <translation>Неверное приглашение</translation>
+    </message>
+    <message>
+        <source>You are the administrator: press Upload to publish your servers</source>
+        <translation>Вы администратор: нажмите «Загрузить», чтобы опубликовать серверы</translation>
+    </message>
+    <message>
+        <source>Paste the invite from your administrator first</source>
+        <translation>Сначала вставьте приглашение от администратора</translation>
+    </message>
+    <message>
+        <source>Your invite has been revoked</source>
+        <translation>Ваше приглашение отозвано</translation>
+    </message>
+    <message>
+        <source>No server is reachable. Check your internet connection</source>
+        <translation>Ни один сервер не отвечает. Проверьте подключение к интернету</translation>
+    </message>
+    <message>
+        <source>Servers updated: %1</source>
+        <translation>Серверы обновлены: %1</translation>
+    </message>
+    <message>
+        <source>Servers updated: %1, unavailable: %2</source>
+        <translation>Серверы обновлены: %1, недоступны: %2</translation>
+    </message>
+</context>
+<context>
+    <name>PageSane4ekInvites</name>
+    <message>
+        <source>Invites</source>
+        <translation>Приглашения</translation>
+    </message>
+    <message>
+        <source>Give an invite to a person. After pressing Refresh they get all your servers with a personal key, without access to server management. Deleting an invite disables its keys on all servers.</source>
+        <translation>Дайте человеку приглашение. После нажатия «Обновить» он получит все ваши серверы с личным ключом, без доступа к управлению серверами. Удаление приглашения отключает его ключи на всех серверах.</translation>
+    </message>
+    <message>
+        <source>Name, e.g. Vasya</source>
+        <translation>Имя, например Вася</translation>
+    </message>
+    <message>
+        <source>Device limit (1-20, empty - no limit)</source>
+        <translation>Лимит устройств (1–20, пусто — без ограничений)</translation>
+    </message>
+    <message>
+        <source>Uploading to servers...</source>
+        <translation>Загрузка на серверы...</translation>
+    </message>
+    <message>
+        <source>Create invite</source>
+        <translation>Создать приглашение</translation>
+    </message>
+    <message>
+        <source>Created invites</source>
+        <translation>Созданные приглашения</translation>
+    </message>
+    <message>
+        <source>up to %1 devices</source>
+        <translation>до %1 устройств</translation>
+    </message>
+    <message>
+        <source>Delete invite &quot;%1&quot;?</source>
+        <translation>Удалить приглашение «%1»?</translation>
+    </message>
+    <message>
+        <source>The keys of this invite will stop working on all servers</source>
+        <translation>Ключи этого приглашения перестанут работать на всех серверах</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Удалить</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Отмена</translation>
+    </message>
+    <message>
+        <source>Invite: %1</source>
+        <translation>Приглашение: %1</translation>
+    </message>
+    <message>
+        <source>Scan the QR code in Sane4ek (+ → QR code) or paste the link into the key field</source>
+        <translation>Отсканируйте QR-код в Sane4ek (+ → QR-код) или вставьте ссылку в поле для ключа</translation>
+    </message>
+    <message>
+        <source>Copy invite link</source>
+        <translation>Скопировать ссылку-приглашение</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Скопировано</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Закрыть</translation>
+    </message>
+    <message>
+        <source>Servers are not ready. Press Upload on the home screen and check SSH access</source>
+        <translation>Серверы не готовы. Нажмите «Загрузить» на главном экране и проверьте доступ по SSH</translation>
     </message>
 </context>
 </TS>

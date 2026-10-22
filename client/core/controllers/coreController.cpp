@@ -204,6 +204,11 @@ void CoreController::initControllers()
     m_importController = new ImportUiController(m_importCoreController, this);
     setQmlContextProperty("ImportController", m_importController);
 
+    m_sane4ekController = new Sane4ekController(m_serversRepository, m_importCoreController, this);
+    setQmlContextProperty("Sane4ekController", m_sane4ekController);
+    connect(m_importController, &ImportUiController::sane4ekInviteDetected, m_sane4ekController,
+            &Sane4ekController::acceptInvite, Qt::QueuedConnection);
+
     m_exportUiController = new ExportUiController(m_exportController, this);
     setQmlContextProperty("ExportController", m_exportUiController);
 

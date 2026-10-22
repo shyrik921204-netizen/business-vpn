@@ -48,6 +48,7 @@ signals:
     void qrDecodingFinished();
     void restoreAppConfig(const QByteArray &data);
     void importConfigChanged();
+    void sane4ekInviteDetected(const QString &invite);
 
 private:
 #if defined Q_OS_ANDROID || defined Q_OS_IOS

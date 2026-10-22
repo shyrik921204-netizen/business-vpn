@@ -1,5 +1,7 @@
 #include "importUiController.h"
 
+#include "core/controllers/sane4ekController.h"
+
 #include <QDebug>
 #include <QFile>
 #include <QFileInfo>
@@ -64,6 +66,11 @@ bool ImportUiController::extractConfigFromFile(const QString &fileName)
 
 bool ImportUiController::extractConfigFromData(QString data)
 {
+    if (Sane4ekController::isInviteLink(data)) {
+        emit sane4ekInviteDetected(data.trimmed());
+        return false; // handled by Sane4ekController, no config page
+    }
+
     auto result = m_importController->extractConfigFromData(data);
     
     if (result.errorCode != ErrorCode::NoError) {
@@ -158,6 +165,11 @@ void ImportUiController::stopDecodingQr()
 
 bool ImportUiController::parseQrCodeChunk(const QString &code)
 {
+    if (Sane4ekController::isInviteLink(code)) {
+        emit sane4ekInviteDetected(code.trimmed()); // queued to the main thread when called from the camera thread
+        return true;
+    }
+
     auto parseResult = m_importController->parseQrCodeChunk(code);
     if (parseResult.success) {
         m_config = parseResult.importResult.config;
