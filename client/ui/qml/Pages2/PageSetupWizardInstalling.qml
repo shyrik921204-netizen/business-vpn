@@ -60,8 +60,8 @@ PageType {
         function onServerIsBusy(isBusy) {
             if (isBusy) {
                 root.isCancelButtonVisible = true
-                root.progressBarText = qsTr("Business VPN has detected that your server is currently ") +
-                                       qsTr("busy installing other software. Business VPN installation ") +
+                root.progressBarText = qsTr("Sane4ek has detected that your server is currently ") +
+                                       qsTr("busy installing other software. Sane4ek installation ") +
                                        qsTr("will pause until the server finishes installing other software")
                 root.isTimerRunning = false
             } else {

@@ -79,7 +79,7 @@ private const val CHECK_NOTIFICATION_PERMISSION_ACTION_CODE = 4
 private const val PREFS_NOTIFICATION_PERMISSION_ASKED = "NOTIFICATION_PERMISSION_ASKED"
 private const val OPEN_FILE_AFTER_RESUME_DELAY_MS = 400L
 private const val KEY_PENDING_OPEN_FILE_URI = "pending_open_file_uri"
-private const val FILE_PROVIDER_AUTHORITY = "com.businessvpn.app.qtprovider"
+private const val FILE_PROVIDER_AUTHORITY = "com.sane4ek.vpn.qtprovider"
 
 class AmneziaActivity : QtActivity() {
 

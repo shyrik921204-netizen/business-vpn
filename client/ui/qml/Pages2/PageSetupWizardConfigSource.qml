@@ -257,7 +257,7 @@ PageType {
 
                 size: LinkButtonType.Medium
 
-                visible: Qt.platform.os !== "ios" && !IsMacOsNeBuild
+                visible: false // Sane4ek: hidden
 
                 text: qsTr("Site Amnezia")
 
@@ -287,7 +287,7 @@ PageType {
         property string description: qsTr("The easiest way to connect to the VPN")
         property string imageSource: "qrc:/images/controls/amnezia.svg"
         property bool featuredAmneziaConnection: true
-        property bool isVisible: true
+        property bool isVisible: false // Sane4ek: hidden
         property var handler: function() {
             PageController.showBusyIndicator(true)
             var result = SubscriptionUiController.fillAvailableServices()
@@ -303,7 +303,7 @@ PageType {
 
         property bool featuredAmneziaConnection: false
         property string title: qsTr("Self-hosted VPN")
-        property string description: qsTr("Configure Business VPN on your own server")
+        property string description: qsTr("Configure Sane4ek on your own server")
         property string imageSource: "qrc:/images/controls/server.svg"
         property bool isVisible: true
         property var handler: function() {
@@ -394,7 +394,7 @@ PageType {
         property string title: qsTr("I have nothing")
         property string description: qsTr("")
         property string imageSource: "qrc:/images/controls/help-circle.svg"
-        property bool isVisible: PageController.isStartPageVisible() && Qt.platform.os !== "ios" && !IsMacOsNeBuild
+        property bool isVisible: false // Sane4ek: hidden
         property var handler: function() {
             Qt.openUrlExternally(LanguageUiController.getCurrentSiteUrl())
         }

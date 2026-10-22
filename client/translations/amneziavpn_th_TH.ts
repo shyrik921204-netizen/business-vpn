@@ -477,8 +477,8 @@ Already installed containers were found on the server. All installed containers 
     <message>
         <location filename="../ui/utils/notificationHandler.cpp" line="57"/>
         <location filename="../ui/utils/notificationHandler.cpp" line="64"/>
-        <source>Business VPN</source>
-        <translation>Business VPN</translation>
+        <source>Sane4ek</source>
+        <translation>Sane4ek</translation>
     </message>
     <message>
         <location filename="../ui/utils/notificationHandler.cpp" line="58"/>
@@ -492,8 +492,8 @@ Already installed containers were found on the server. All installed containers 
     </message>
     <message>
         <location filename="../ui/utils/notificationHandler.cpp" line="88"/>
-        <source>Business VPN notification</source>
-        <translation>การแจ้งเตือนของ Business VPN</translation>
+        <source>Sane4ek notification</source>
+        <translation>การแจ้งเตือนของ Sane4ek</translation>
     </message>
     <message>
         <location filename="../ui/utils/notificationHandler.cpp" line="89"/>
@@ -3380,8 +3380,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettings.qml" line="178"/>
-        <source>About Business VPN</source>
-        <translation>เกี่ยวกับ Business VPN</translation>
+        <source>About Sane4ek</source>
+        <translation>เกี่ยวกับ Sane4ek</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettings.qml" line="189"/>
@@ -3393,8 +3393,8 @@ Create one from the current settings.</source>
     <name>PageSettingsAbout</name>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="21"/>
-        <source>You have the latest version of Business VPN</source>
-        <translation>คุณมี Business VPN เวอร์ชันล่าสุดแล้ว</translation>
+        <source>You have the latest version of Sane4ek</source>
+        <translation>คุณมี Sane4ek เวอร์ชันล่าสุดแล้ว</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsAbout.qml" line="25"/>
@@ -3675,8 +3675,8 @@ Create one from the current settings.</source>
     <name>PageSettingsApiNativeConfigs</name>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiNativeConfigs.qml" line="21"/>
-        <source>Save Business VPN config</source>
-        <translation>บันทึกการกำหนดค่า Business VPN</translation>
+        <source>Save Sane4ek config</source>
+        <translation>บันทึกการกำหนดค่า Sane4ek</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiNativeConfigs.qml" line="183"/>
@@ -3911,8 +3911,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiSubscriptionKey.qml" line="113"/>
-        <source>Save Business VPN config</source>
-        <translation>บันทึกการกำหนดค่า Business VPN</translation>
+        <source>Save Sane4ek config</source>
+        <translation>บันทึกการกำหนดค่า Sane4ek</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiSubscriptionKey.qml" line="114"/>
@@ -3931,8 +3931,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApiSubscriptionKey.qml" line="173"/>
-        <source>To read the QR code in the Business VPN app, tap + in the main menu → &apos;QR code&apos;</source>
-        <translation>หากต้องการอ่านคิวอาร์โค้ดในแอป Business VPN ให้แตะ + ในเมนูหลัก → &apos;QR code&apos;</translation>
+        <source>To read the QR code in the Sane4ek app, tap + in the main menu → &apos;QR code&apos;</source>
+        <translation>หากต้องการอ่านคิวอาร์โค้ดในแอป Sane4ek ให้แตะ + ในเมนูหลัก → &apos;QR code&apos;</translation>
     </message>
 </context>
 <context>
@@ -4145,8 +4145,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApplication.qml" line="274"/>
-        <source>All settings will be reset to default. All installed Business VPN services will still remain on the server.</source>
-        <translation>การตั้งค่าทั้งหมดจะถูกรีเซ็ตเป็นค่าเริ่มต้น บริการ Business VPN ที่ติดตั้งทั้งหมดจะยังคงอยู่บนเซิร์ฟเวอร์</translation>
+        <source>All settings will be reset to default. All installed Sane4ek services will still remain on the server.</source>
+        <translation>การตั้งค่าทั้งหมดจะถูกรีเซ็ตเป็นค่าเริ่มต้น บริการ Sane4ek ที่ติดตั้งทั้งหมดจะยังคงอยู่บนเซิร์ฟเวอร์</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsApplication.qml" line="275"/>
@@ -4183,8 +4183,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsBackup.qml" line="65"/>
-        <source>The backup will contain your passwords and private keys for all servers added to Business VPN. Keep this information in a secure place.</source>
-        <translation>ข้อมูลสำรองจะมีรหัสผ่านและคีย์ส่วนตัวของเซิร์ฟเวอร์ทั้งหมดที่เพิ่มใน Business VPN กรุณาเก็บข้อมูลนี้ไว้ในที่ปลอดภัย</translation>
+        <source>The backup will contain your passwords and private keys for all servers added to Sane4ek. Keep this information in a secure place.</source>
+        <translation>ข้อมูลสำรองจะมีรหัสผ่านและคีย์ส่วนตัวของเซิร์ฟเวอร์ทั้งหมดที่เพิ่มใน Sane4ek กรุณาเก็บข้อมูลนี้ไว้ในที่ปลอดภัย</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsBackup.qml" line="88"/>
@@ -4601,8 +4601,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="101"/>
-        <source>Check the server for previously installed Business VPN services</source>
-        <translation>ตรวจหาบริการ Business VPN ที่ติดตั้งไว้ก่อนหน้านี้บนเซิร์ฟเวอร์</translation>
+        <source>Check the server for previously installed Sane4ek services</source>
+        <translation>ตรวจหาบริการ Sane4ek ที่ติดตั้งไว้ก่อนหน้านี้บนเซิร์ฟเวอร์</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="102"/>
@@ -4657,8 +4657,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="150"/>
-        <source>All installed Business VPN services will still remain on the server.</source>
-        <translation>บริการ Business VPN ที่ติดตั้งทั้งหมดจะยังคงอยู่บนเซิร์ฟเวอร์</translation>
+        <source>All installed Sane4ek services will still remain on the server.</source>
+        <translation>บริการ Sane4ek ที่ติดตั้งทั้งหมดจะยังคงอยู่บนเซิร์ฟเวอร์</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="156"/>
@@ -4667,13 +4667,13 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="175"/>
-        <source>Clear server from Business VPN software</source>
-        <translation>ล้างเซิร์ฟเวอร์ออกจากซอฟต์แวร์ Business VPN</translation>
+        <source>Clear server from Sane4ek software</source>
+        <translation>ล้างเซิร์ฟเวอร์ออกจากซอฟต์แวร์ Sane4ek</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="179"/>
-        <source>Do you want to clear server from Business VPN software?</source>
-        <translation>คุณต้องการล้างเซิร์ฟเวอร์ออกจากซอฟต์แวร์ Business VPN หรือไม่?</translation>
+        <source>Do you want to clear server from Sane4ek software?</source>
+        <translation>คุณต้องการล้างเซิร์ฟเวอร์ออกจากซอฟต์แวร์ Sane4ek หรือไม่?</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="180"/>
@@ -4682,8 +4682,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="186"/>
-        <source>Cannot clear server from Business VPN software during active connection</source>
-        <translation>ไม่สามารถล้างเซิร์ฟเวอร์ออกจากซอฟต์แวร์ Business VPN ระหว่างการเชื่อมต่อที่ใช้งานอยู่ได้</translation>
+        <source>Cannot clear server from Sane4ek software during active connection</source>
+        <translation>ไม่สามารถล้างเซิร์ฟเวอร์ออกจากซอฟต์แวร์ Sane4ek ระหว่างการเชื่อมต่อที่ใช้งานอยู่ได้</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="204"/>
@@ -5195,8 +5195,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSetupWizardConfigSource.qml" line="306"/>
-        <source>Configure Business VPN on your own server</source>
-        <translation>กำหนดค่า Business VPN บนเซิร์ฟเวอร์ของคุณเอง</translation>
+        <source>Configure Sane4ek on your own server</source>
+        <translation>กำหนดค่า Sane4ek บนเซิร์ฟเวอร์ของคุณเอง</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSetupWizardConfigSource.qml" line="318"/>
@@ -5370,13 +5370,13 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSetupWizardInstalling.qml" line="63"/>
-        <source>Business VPN has detected that your server is currently </source>
-        <translation>Business VPN ตรวจพบว่าเซิร์ฟเวอร์ของคุณกำลัง</translation>
+        <source>Sane4ek has detected that your server is currently </source>
+        <translation>Sane4ek ตรวจพบว่าเซิร์ฟเวอร์ของคุณกำลัง</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSetupWizardInstalling.qml" line="64"/>
-        <source>busy installing other software. Business VPN installation </source>
-        <translation>ติดตั้งซอฟต์แวร์อื่นอยู่ การติดตั้งของ Business VPN </translation>
+        <source>busy installing other software. Sane4ek installation </source>
+        <translation>ติดตั้งซอฟต์แวร์อื่นอยู่ การติดตั้งของ Sane4ek </translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageSetupWizardInstalling.qml" line="65"/>
@@ -5577,8 +5577,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShare.qml" line="51"/>
-        <source>Save Business VPN config</source>
-        <translation>บันทึกการกำหนดค่า Business VPN</translation>
+        <source>Save Sane4ek config</source>
+        <translation>บันทึกการกำหนดค่า Sane4ek</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShare.qml" line="58"/>
@@ -5612,8 +5612,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShare.qml" line="108"/>
-        <source>For the Business VPN app</source>
-        <translation>สำหรับแอปพลิเคชัน Business VPN</translation>
+        <source>For the Sane4ek app</source>
+        <translation>สำหรับแอปพลิเคชัน Sane4ek</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShare.qml" line="113"/>
@@ -5775,8 +5775,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShareConnection.qml" line="30"/>
-        <source>Save Business VPN config</source>
-        <translation>บันทึกการกำหนดค่า Business VPN</translation>
+        <source>Save Sane4ek config</source>
+        <translation>บันทึกการกำหนดค่า Sane4ek</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShareConnection.qml" line="126"/>
@@ -5795,8 +5795,8 @@ Create one from the current settings.</source>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShareConnection.qml" line="199"/>
-        <source>To read the QR code in the Business VPN app, tap + in the main menu → &apos;QR code&apos;</source>
-        <translation>หากต้องการอ่านคิวอาร์โค้ดในแอป Business VPN ให้แตะ + ในเมนูหลัก → &apos;QR code&apos;</translation>
+        <source>To read the QR code in the Sane4ek app, tap + in the main menu → &apos;QR code&apos;</source>
+        <translation>หากต้องการอ่านคิวอาร์โค้ดในแอป Sane4ek ให้แตะ + ในเมนูหลัก → &apos;QR code&apos;</translation>
     </message>
     <message>
         <location filename="../ui/qml/Pages2/PageShareConnection.qml" line="214"/>
@@ -6527,14 +6527,14 @@ Create one from the current settings.</source>
         <source>OpenVPN is one of the most popular and reliable VPN protocols. It uses SSL/TLS encryption, supports a wide variety of devices and operating systems, and is continuously improved by the community due to its open-source nature. It provides a good balance between speed and security but is easily recognized by DPI systems, making it susceptible to blocking.
 
 Features:
-* Available on all Business VPN platforms
+* Available on all Sane4ek platforms
 * Normal battery consumption on mobile devices
 * Flexible customization for various devices and OS
 * Operates over both TCP and UDP protocols</source>
         <translation>OpenVPN เป็นหนึ่งในโปรโตคอล VPN ที่ได้รับความนิยมและเชื่อถือที่สุด ใช้การเข้ารหัส SSL/TLS รองรับอุปกรณ์และระบบปฏิบัติการที่หลากหลาย และได้รับการพัฒนาอย่างต่อเนื่องโดยชุมชนเนื่องจากเป็นโอเพนซอร์ส ให้สมดุลที่ดีระหว่างความเร็วและความปลอดภัย แต่ถูกระบบ DPI ตรวจจับได้ง่าย จึงเสี่ยงที่จะถูกบล็อก
 
 คุณสมบัติ:
-* ใช้ได้บนทุกแพลตฟอร์มของ Business VPN
+* ใช้ได้บนทุกแพลตฟอร์มของ Sane4ek
 * ใช้พลังงานแบตเตอรี่ในระดับปกติบนอุปกรณ์เคลื่อนที่
 * ปรับแต่งได้ยืดหยุ่นสำหรับอุปกรณ์และระบบปฏิบัติการต่าง ๆ
 * ทำงานได้ทั้งผ่านโปรโตคอล TCP และ UDP</translation>
@@ -6544,7 +6544,7 @@ Features:
         <source>WireGuard is a modern, streamlined VPN protocol offering stable connectivity and excellent performance across all devices. It uses fixed encryption settings, delivering lower latency and higher data transfer speeds compared to OpenVPN. However, WireGuard is easily identifiable by DPI systems due to its distinctive packet signatures, making it susceptible to blocking.
 
 Features:
-* Available on all Business VPN platforms
+* Available on all Sane4ek platforms
 * Low power consumption on mobile devices
 * Minimal configuration required
 * Easily detected by DPI systems (susceptible to blocking)
@@ -6552,7 +6552,7 @@ Features:
         <translation>WireGuard เป็นโปรโตคอล VPN สมัยใหม่ที่เรียบง่าย ให้การเชื่อมต่อที่เสถียรและประสิทธิภาพที่ยอดเยี่ยมบนทุกอุปกรณ์ ใช้การตั้งค่าการเข้ารหัสแบบคงที่ ทำให้หน่วงเวลาต่ำกว่าและความเร็วถ่ายโอนข้อมูลสูงกว่าเมื่อเทียบกับ OpenVPN อย่างไรก็ตาม WireGuard ถูกระบบ DPI ตรวจจับได้ง่ายจากลายเซ็นแพ็กเก็ตที่แตกต่าง จึงเสี่ยงที่จะถูกบล็อก
 
 คุณสมบัติ:
-* ใช้ได้บนทุกแพลตฟอร์มของ Business VPN
+* ใช้ได้บนทุกแพลตฟอร์มของ Sane4ek
 * ใช้พลังงานน้อยบนอุปกรณ์เคลื่อนที่
 * ตั้งค่าน้อยที่สุด
 * ตรวจจับได้ง่ายโดยระบบ DPI (เสี่ยงที่จะถูกบล็อก)
@@ -6565,7 +6565,7 @@ Features:
 AmneziaWG is an excellent choice for those seeking a fast, stealthy VPN connection.
 
 Features:
-* Available on all Business VPN platforms
+* Available on all Sane4ek platforms
 * Low battery consumption on mobile devices
 * Minimal settings required
 * Undetectable by traffic analysis systems (DPI)
@@ -6575,7 +6575,7 @@ Features:
 AmneziaWG เป็นตัวเลือกที่ยอดเยี่ยมสำหรับผู้ที่ต้องการการเชื่อมต่อ VPN ที่รวดเร็วและไม่ถูกตรวจจับ
 
 คุณสมบัติ:
-* ใช้ได้บนทุกแพลตฟอร์มของ Business VPN
+* ใช้ได้บนทุกแพลตฟอร์มของ Sane4ek
 * ใช้พลังงานแบตเตอรี่น้อยบนอุปกรณ์เคลื่อนที่
 * ตั้งค่าน้อยที่สุด
 * ตรวจจับไม่ได้โดยระบบวิเคราะห์ทราฟฟิก (DPI)
@@ -6607,7 +6607,7 @@ Features:
         <source>IKEv2, combined with IPSec encryption, is a modern and reliable VPN protocol. It reconnects quickly when switching networks or devices, making it ideal for dynamic network environments. While it provides good security and speed, it&apos;s easily recognized by DPI systems and susceptible to blocking.
 
 Features:
-* Available in Business VPN only on Windows
+* Available in Sane4ek only on Windows
 * Low battery consumption on mobile devices
 * Minimal configuration required
 * Detectable by DPI analysis systems(easily blocked)
@@ -6615,7 +6615,7 @@ Features:
         <translation>IKEv2 ร่วมกับการเข้ารหัส IPSec เป็นโปรโตคอล VPN ที่ทันสมัยและเชื่อถือได้ เชื่อมต่อใหม่ได้อย่างรวดเร็วเมื่อสลับเครือข่ายหรืออุปกรณ์ จึงเหมาะกับสภาพเครือข่ายที่เปลี่ยนแปลงได้ตลอดเวลา แม้จะให้ความปลอดภัยและความเร็วที่ดี แต่ก็ถูกระบบ DPI ตรวจจับได้ง่ายและเสี่ยงที่จะถูกบล็อก
 
 คุณสมบัติ:
-* ใช้ได้ใน Business VPN เฉพาะบน Windows
+* ใช้ได้ใน Sane4ek เฉพาะบน Windows
 * ใช้พลังงานแบตเตอรี่น้อยบนอุปกรณ์เคลื่อนที่
 * ตั้งค่าน้อยที่สุด
 * ตรวจจับได้โดยระบบวิเคราะห์ DPI (บล็อกได้ง่าย)

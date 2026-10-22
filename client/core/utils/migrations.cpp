@@ -37,7 +37,7 @@ void Migrations::migrateV3()
 #ifdef Q_OS_ANDROID
     qDebug() << "Migration to V3 on Android...";
 
-    QString packageName = "com.businessvpn.app";
+    QString packageName = "com.sane4ek.vpn";
 
     QDir dir(".");
     QString currentDir = dir.absolutePath();

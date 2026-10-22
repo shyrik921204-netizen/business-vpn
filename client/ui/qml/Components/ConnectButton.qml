@@ -140,18 +140,34 @@ Button {
         }
     }
 
-    contentItem: ButtonTextType {
-        text: root.text
+    contentItem: Item {
+        Column {
+            anchors.centerIn: parent
+            width: parent.width
+            spacing: 2
 
-        color: root.connected && !root.inProgress ? AmneziaStyle.color.textAccent : AmneziaStyle.color.textPrimary
-        lineHeight: 30 + LanguageUiController.getLineHeightAppend()
-        font.pixelSize: 20
+            CoolSmiley {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: Math.round(root.width * 0.3)
+                height: width
+                active: root.connected && !root.inProgress
+            }
 
-        leftPadding: 16
-        rightPadding: 16
+            ButtonTextType {
+                width: parent.width
+                text: root.text
 
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
+                color: root.connected && !root.inProgress ? AmneziaStyle.color.textAccent : AmneziaStyle.color.textPrimary
+                lineHeight: 30 + LanguageUiController.getLineHeightAppend()
+                font.pixelSize: 20
+
+                leftPadding: 16
+                rightPadding: 16
+
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+        }
     }
 
     HoverHandler {

@@ -18,7 +18,7 @@ PageType {
     isTabBarHidden: true
 
     property string configExtension: ".conf"
-    property string configCaption: qsTr("Save Business VPN config")
+    property string configCaption: qsTr("Save Sane4ek config")
 
     Component.onCompleted: {
         ApiConfigsCountryListModel.applyDefaultState(false)

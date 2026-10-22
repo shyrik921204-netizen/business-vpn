@@ -48,7 +48,7 @@ PageType {
             switch (type) {
             case PageShare.ConfigType.AmneziaConnection: {
                 ExportController.generateConnectionConfig(serverId, containerIndex, clientNameTextField.textField.text);
-                configCaption = qsTr("Save Business VPN config")
+                configCaption = qsTr("Save Sane4ek config")
                 configExtension = ".vpn"
                 configFileName = "amnezia_config"
                 break;
@@ -105,7 +105,7 @@ PageType {
 
     QtObject {
         id: amneziaConnectionFormat
-        readonly property string name: qsTr("For the Business VPN app")
+        readonly property string name: qsTr("For the Sane4ek app")
         readonly property int type: PageShare.ConfigType.AmneziaConnection
     }
     QtObject {

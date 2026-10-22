@@ -54,14 +54,14 @@ void NotificationHandler::setConnectionState(Vpn::ConnectionState state)
     case Vpn::ConnectionState::Connected:
         m_connected = true;
 
-        title = tr("Business VPN");
+        title = tr("Sane4ek");
         message = tr("VPN Connected");
         break;
 
     case Vpn::ConnectionState::Disconnected:
         if (m_connected) {
             m_connected = false;
-            title = tr("Business VPN");
+            title = tr("Sane4ek");
             message = tr("VPN Disconnected");
         }
         break;
@@ -85,7 +85,7 @@ void NotificationHandler::unsecuredNetworkNotification(const QString& networkNam
     qDebug() << "Unsecured network notification shown";
 
 
-    QString title = tr("Business VPN notification");
+    QString title = tr("Sane4ek notification");
     QString message = tr("Unsecured network detected: ") + networkName;
 
     notifyInternal(UnsecuredNetwork, title, message, 2000);

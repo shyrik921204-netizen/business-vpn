@@ -118,7 +118,7 @@ PageType {
 
         property string title: qsTr("Servers")
         readonly property string leftImagePath: "qrc:/images/controls/server.svg"
-        property bool isVisible: true
+        property bool isVisible: false // Sane4ek: hidden
         readonly property var clickedHandler: function() {
             PageController.goToPage(PageEnum.PageSettingsServersList)
         }
@@ -177,9 +177,9 @@ PageType {
     QtObject {
         id: about
 
-        property string title: qsTr("About Business VPN")
+        property string title: qsTr("About Sane4ek")
         readonly property string leftImagePath: "qrc:/images/controls/amnezia.svg"
-        property bool isVisible: true
+        property bool isVisible: false // Sane4ek: hidden
         readonly property var clickedHandler: function() {
             PageController.goToPage(PageEnum.PageSettingsAbout)
         }

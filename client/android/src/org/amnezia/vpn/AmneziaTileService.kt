@@ -29,7 +29,7 @@ import org.amnezia.vpn.protocol.ProtocolState.UNKNOWN
 import org.amnezia.vpn.util.Log
 
 private const val TAG = "AmneziaTileService"
-private const val DEFAULT_TILE_LABEL = "Business VPN"
+private const val DEFAULT_TILE_LABEL = "Sane4ek"
 
 class AmneziaTileService : TileService() {
 

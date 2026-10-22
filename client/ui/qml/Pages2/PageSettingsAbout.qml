@@ -19,7 +19,7 @@ PageType {
         target: UpdateController
 
         function onUpdateNotFound() {
-            PageController.showNotificationMessage(qsTr("You have the latest version of Business VPN"))
+            PageController.showNotificationMessage(qsTr("You have the latest version of Sane4ek"))
         }
 
         function onUpdateCheckFailed() {

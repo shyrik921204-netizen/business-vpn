@@ -66,7 +66,7 @@ class ServiceNotification(private val context: Context) {
 
         return notificationBuilder
             .setSmallIcon(R.drawable.ic_amnezia_round)
-            .setContentTitle((serverName ?: "Business VPN") + (protocol?.let { " $it" } ?: ""))
+            .setContentTitle((serverName ?: "Sane4ek") + (protocol?.let { " $it" } ?: ""))
             .setContentText(context.getString(state))
             .setSubText(speedString)
             .setWhen(System.currentTimeMillis())
@@ -158,7 +158,7 @@ class ServiceNotification(private val context: Context) {
                         .setSound(null, null)
                         .setVibrationEnabled(false)
                         .setLightsEnabled(false)
-                        .setName("Business VPN")
+                        .setName("Sane4ek")
                         .setDescription(context.resources.getString(R.string.notificationChannelDescription))
                         .build()
                 )
