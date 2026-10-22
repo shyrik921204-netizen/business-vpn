@@ -892,6 +892,30 @@ Already installed containers were found on the server. All installed containers 
         <source>Servers</source>
         <translation>Серверы</translation>
     </message>
+    <message>
+        <source>Invite</source>
+        <translation>Приглашение</translation>
+    </message>
+    <message>
+        <source>To get the servers, paste the invite link from your administrator or scan its QR code</source>
+        <translation>Чтобы получить серверы, вставьте ссылку-приглашение от администратора или отсканируйте его QR-код</translation>
+    </message>
+    <message>
+        <source>Invite link sane4ek://...</source>
+        <translation>Ссылка-приглашение sane4ek://...</translation>
+    </message>
+    <message>
+        <source>Connect</source>
+        <translation>Подключить</translation>
+    </message>
+    <message>
+        <source>This is not a Sane4ek invite. Ask your administrator for a new one</source>
+        <translation>Это не приглашение Sane4ek. Попросите у администратора новое</translation>
+    </message>
+    <message>
+        <source>Scan QR code</source>
+        <translation>Сканировать QR-код</translation>
+    </message>
 </context>
 <context>
     <name>PageProtocolAwgClientSettings</name>
@@ -7844,6 +7868,38 @@ Remove the server from the app to continue.</source>
     <message>
         <source>Servers are not ready. Press Upload on the home screen and check SSH access</source>
         <translation>Серверы не готовы. Нажмите «Загрузить» на главном экране и проверьте доступ по SSH</translation>
+    </message>
+    <message>
+        <source>Key validity</source>
+        <translation>Срок действия ключа</translation>
+    </message>
+    <message>
+        <source>1 day</source>
+        <translation>1 день</translation>
+    </message>
+    <message>
+        <source>31 days</source>
+        <translation>31 день</translation>
+    </message>
+    <message>
+        <source>365 days</source>
+        <translation>365 дней</translation>
+    </message>
+    <message>
+        <source>Forever</source>
+        <translation>Бессрочно</translation>
+    </message>
+    <message>
+        <source>forever</source>
+        <translation>бессрочно</translation>
+    </message>
+    <message>
+        <source>expired %1</source>
+        <translation>истёк %1</translation>
+    </message>
+    <message>
+        <source>until %1</source>
+        <translation>до %1</translation>
     </message>
 </context>
 </TS>

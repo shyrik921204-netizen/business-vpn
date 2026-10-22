@@ -265,12 +265,15 @@ QVariantList Sane4ekController::invites() const
         m["name"] = o.value("name").toString();
         m["maxDevices"] = o.value("maxDevices").toInt();
         m["created"] = QDateTime::fromSecsSinceEpoch(o.value("created").toInteger()).toString("dd.MM.yyyy");
+        const qint64 expires = o.value("expires").toInteger();
+        m["expires"] = expires > 0 ? QDateTime::fromSecsSinceEpoch(expires).toString("dd.MM.yyyy HH:mm") : QString();
+        m["expired"] = expires > 0 && expires < QDateTime::currentSecsSinceEpoch();
         list.append(m);
     }
     return list;
 }
 
-QString Sane4ekController::createInvite(const QString &name, int maxDevices)
+QString Sane4ekController::createInvite(const QString &name, int maxDevices, int days)
 {
     QByteArray token(18, 0);
     if (RAND_bytes(reinterpret_cast<unsigned char *>(token.data()), token.size()) != 1) {
@@ -282,6 +285,7 @@ QString Sane4ekController::createInvite(const QString &name, int maxDevices)
     invite["token"] = base64Url(token);
     invite["maxDevices"] = qBound(0, maxDevices, 20);
     invite["created"] = QDateTime::currentSecsSinceEpoch();
+    invite["expires"] = days > 0 ? QDateTime::currentSecsSinceEpoch() + qint64(days) * 24 * 3600 : 0;
 
     QJsonArray arr = storedInvites();
     arr.append(invite);
@@ -454,7 +458,8 @@ void Sane4ekController::finishUploadPhase1(const QList<InstallResult> &results)
                 { "hash",
                   QString::fromLatin1(QCryptographicHash::hash(o.value("token").toString().toUtf8(), QCryptographicHash::Sha256).toHex()) },
                 { "name", o.value("name").toString() },
-                { "maxDevices", o.value("maxDevices").toInt() } });
+                { "maxDevices", o.value("maxDevices").toInt() },
+                { "expires", o.value("expires").toInteger() } });
     }
     const QByteArray invitesBytes = QJsonDocument(agentInvites).toJson(QJsonDocument::Compact);
 

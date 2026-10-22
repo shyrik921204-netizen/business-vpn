@@ -17,6 +17,7 @@ PageType {
     id: root
 
     property string shownInviteId: ""
+    property int validityDays: 31
     property string shownInviteName: ""
 
     function showInvite(inviteId, name) {
@@ -83,6 +84,40 @@ PageType {
                 textField.validator: IntValidator { bottom: 0; top: 20 }
             }
 
+            SmallTextType {
+                Layout.fillWidth: true
+                Layout.topMargin: 16
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
+
+                text: qsTr("Key validity")
+            }
+
+            Flow {
+                Layout.fillWidth: true
+                Layout.topMargin: 8
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
+
+                spacing: 8
+
+                Repeater {
+                    model: [
+                        { days: 1, label: qsTr("1 day") },
+                        { days: 31, label: qsTr("31 days") },
+                        { days: 365, label: qsTr("365 days") },
+                        { days: 0, label: qsTr("Forever") }
+                    ]
+
+                    delegate: ChipType {
+                        checked: root.validityDays === modelData.days
+                        text: modelData.label
+
+                        onClicked: root.validityDays = modelData.days
+                    }
+                }
+            }
+
             ButtonType {
                 Layout.fillWidth: true
                 Layout.topMargin: 16
@@ -94,7 +129,8 @@ PageType {
 
                 onClicked: {
                     var limit = parseInt(devicesField.textField.text)
-                    var id = Sane4ekController.createInvite(nameField.textField.text, isNaN(limit) ? 0 : limit)
+                    var id = Sane4ekController.createInvite(nameField.textField.text, isNaN(limit) ? 0 : limit,
+                                                           root.validityDays)
                     if (id !== "") {
                         var name = nameField.textField.text
                         nameField.textField.text = ""
@@ -123,8 +159,12 @@ PageType {
                     Layout.rightMargin: 16
 
                     text: modelData.name
-                    subtitle: modelData.created + (modelData.maxDevices > 0
-                                                   ? " · " + qsTr("up to %1 devices").arg(modelData.maxDevices) : "")
+                    subtitle: modelData.created
+                              + (modelData.expires === "" ? " · " + qsTr("forever")
+                                                          : (modelData.expired ? " · " + qsTr("expired %1").arg(modelData.expires)
+                                                                               : " · " + qsTr("until %1").arg(modelData.expires)))
+                              + (modelData.maxDevices > 0 ? " · " + qsTr("up to %1 devices").arg(modelData.maxDevices) : "")
+                    subtitleColor: modelData.expired ? AmneziaStyle.color.statusDestructive : AmneziaStyle.color.textTertiary
 
                     onClicked: root.showInvite(modelData.id, modelData.name)
 

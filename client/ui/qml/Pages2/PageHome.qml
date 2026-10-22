@@ -151,9 +151,85 @@ PageType {
             icon.source: "qrc:/images/controls/refresh-cw.svg"
 
             onClicked: {
+                if (!Sane4ekController.hasInvite && !Sane4ekController.isAdmin) {
+                    sane4ekInviteSheet.open()
+                    return
+                }
                 sane4ekUploadButton.lastUsed = false
                 lastUsed = true
                 Sane4ekController.refresh()
+            }
+        }
+
+        // Sane4ek: enter the invite from the administrator
+        SheetType {
+            id: sane4ekInviteSheet
+
+            expandedHeight: windowHeight * 0.65
+            parent: root
+
+            ColumnLayout {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: 16
+                anchors.rightMargin: 16
+
+                spacing: 16
+
+                H2TextType {
+                    Layout.fillWidth: true
+                    Layout.topMargin: 8
+                    text: qsTr("Invite")
+                }
+
+                SmallTextType {
+                    Layout.fillWidth: true
+                    text: qsTr("To get the servers, paste the invite link from your administrator or scan its QR code")
+                }
+
+                TextFieldType {
+                    id: sane4ekInviteField
+
+                    Layout.fillWidth: true
+                    headerText: qsTr("Invite link sane4ek://...")
+                }
+
+                ButtonType {
+                    Layout.fillWidth: true
+
+                    enabled: sane4ekInviteField.textField.text !== ""
+                    text: qsTr("Connect")
+
+                    onClicked: {
+                        if (Sane4ekController.acceptInvite(sane4ekInviteField.textField.text)) {
+                            sane4ekInviteField.textField.text = ""
+                            sane4ekInviteSheet.close()
+                            sane4ekUploadButton.lastUsed = false
+                            sane4ekRefreshButton.lastUsed = true
+                        } else {
+                            PageController.showErrorMessage(qsTr("This is not a Sane4ek invite. Ask your administrator for a new one"))
+                        }
+                    }
+                }
+
+                ButtonType {
+                    Layout.fillWidth: true
+
+                    visible: SettingsController.isCameraPresent()
+                    variant: ButtonType.Secondary
+                    text: qsTr("Scan QR code")
+
+                    onClicked: {
+                        sane4ekInviteSheet.close()
+                        sane4ekUploadButton.lastUsed = false
+                        sane4ekRefreshButton.lastUsed = true
+                        ImportController.startDecodingQr()
+                        if (Qt.platform.os === "ios") {
+                            PageController.goToPage(PageEnum.PageSetupWizardQrReader)
+                        }
+                    }
+                }
             }
         }
 

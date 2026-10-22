@@ -48,7 +48,7 @@ public slots:
 
     bool acceptInvite(const QString &text);
 
-    QString createInvite(const QString &name, int maxDevices);
+    QString createInvite(const QString &name, int maxDevices, int days);
     void removeInvite(const QString &inviteId);
     QString inviteLink(const QString &inviteId) const;
     QString inviteQrCode(const QString &inviteId) const;
