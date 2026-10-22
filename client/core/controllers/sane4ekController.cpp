@@ -383,7 +383,7 @@ void Sane4ekController::upload()
             SshSession ssh;
             QString out;
             auto cb = [&out](const QString &data, libssh::Client &) {
-                out += data + "\n";
+                out += data;
                 return ErrorCode::NoError;
             };
             ErrorCode e = ssh.runScript(server.credentials, "mkdir -p /tmp/sane4ek-build");
@@ -402,7 +402,13 @@ void Sane4ekController::upload()
                 r.certPem = out.mid(begin, end - begin + int(strlen("-----END CERTIFICATE-----")));
                 r.ok = true;
             } else {
-                r.error = e != ErrorCode::NoError ? QString("SSH error %1").arg(static_cast<int>(e)) : out.trimmed().right(300);
+                QStringList lines = out.split('\n', Qt::SkipEmptyParts);
+                while (lines.size() > 2) {
+                    lines.removeFirst();
+                }
+                const QString tail = lines.join(" / ").trimmed().right(160);
+                r.error = e != ErrorCode::NoError ? QString("SSH error %1%2").arg(static_cast<int>(e)).arg(tail.isEmpty() ? "" : ": " + tail)
+                                                  : (tail.isEmpty() ? QString("no output") : tail);
             }
             results.append(r);
         }
@@ -424,7 +430,7 @@ void Sane4ekController::finishUploadPhase1(const QList<InstallResult> &results)
             reachable.append(r.server);
         } else {
             qWarning() << "Sane4ek: agent install failed on" << r.server.name << r.error;
-            failedNames.append(r.server.name);
+            failedNames.append(QString("%1 (%2)").arg(r.server.name, r.error));
             if (certs.contains(r.server.key)) {
                 freshCerts[r.server.key] = certs.value(r.server.key);
             }

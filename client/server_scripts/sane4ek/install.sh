@@ -2,10 +2,13 @@
 # Installs or updates the Sane4ek agent. Files are uploaded to /tmp/sane4ek-build first.
 set -e
 PORT=47443
+echo "step: copy"
 sudo mkdir -p /opt/sane4ek/build
 sudo cp /tmp/sane4ek-build/agent.py /tmp/sane4ek-build/Dockerfile /opt/sane4ek/build/
 
+echo "step: docker build"
 sudo docker build -q -t sane4ek-agent /opt/sane4ek/build >/dev/null
+echo "step: certificate"
 
 if [ ! -f /opt/sane4ek/cert.pem ] || [ ! -f /opt/sane4ek/key.pem ]; then
   sudo docker run --rm -v /opt/sane4ek:/data --entrypoint openssl sane4ek-agent \
@@ -14,6 +17,7 @@ if [ ! -f /opt/sane4ek/cert.pem ] || [ ! -f /opt/sane4ek/key.pem ]; then
   sudo chmod 600 /opt/sane4ek/key.pem
 fi
 
+echo "step: start agent"
 sudo docker rm -f sane4ek-agent >/dev/null 2>&1 || true
 sudo docker run -d --restart always --log-driver none --name sane4ek-agent \
   -p $PORT:$PORT/tcp \
