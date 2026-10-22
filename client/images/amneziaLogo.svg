@@ -1,0 +1,8 @@
+<svg width="153" height="131" viewBox="0 0 153 131" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(46.5,2) scale(1.1)">
+    <path d="M27 0 L54 8 L54 35 C54 54 41 67 27 75 C13 67 0 54 0 35 L0 8 Z" fill="#FFFFFF"/>
+    <path d="M27 5 L49 11.5 L49 35 C49 51 38.5 62 27 69 C15.5 62 5 51 5 35 L5 11.5 Z" fill="#205CBE"/>
+    <path d="M18 19 h11 c6.3 0 10 3 10 7.8 c0 3.2 -1.8 5.3 -4.5 6.2 c3.6 0.9 5.7 3.5 5.7 7.2 c0 5.3 -4.1 8.6 -10.8 8.6 H18 Z M23.6 23.7 v7.7 h5 c3 0 4.6 -1.4 4.6 -3.9 c0 -2.4 -1.6 -3.8 -4.6 -3.8 Z M23.6 35.9 v8.2 h5.7 c3.2 0 5 -1.5 5 -4.1 c0 -2.6 -1.8 -4.1 -5 -4.1 Z" fill="#FFFFFF"/>
+  </g>
+  <text x="76.5" y="124" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">Business VPN</text>
+</svg>

@@ -1,0 +1,162 @@
+name: 'Business VPN — Android APK'
+
+on:
+  push:
+    branches: [ '**' ]
+  workflow_dispatch:
+
+env:
+  QT_MIRROR: https://mirrors.ocf.berkeley.edu/qt/
+  QT_VERSION: '6.10.3'
+  QT_MODULES: 'qtremoteobjects qt5compat qtimageformats qtshadertools'
+  NDK_VERSION: 27.0.11718014
+  APP_ANDROID_MIN_SDK: 28
+  ANDROID_PLATFORM: android-28
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+
+    steps:
+    - name: 'Free disk space'
+      run: |
+        sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL /usr/local/.ghcup || true
+        df -h /
+
+    - name: 'Get sources'
+      uses: actions/checkout@v4
+      with:
+        submodules: 'true'
+
+    - name: 'Install desktop Qt'
+      uses: jurplel/install-qt-action@v4.3.1
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: 'linux'
+        target: 'desktop'
+        arch: 'linux_gcc_64'
+        modules: ${{ env.QT_MODULES }}
+        dir: ${{ runner.temp }}
+        py7zrversion: '==0.22.*'
+        extra: '--base ${{ env.QT_MIRROR }}'
+
+    - name: 'Install Android Qt (arm64-v8a)'
+      uses: jurplel/install-qt-action@v4.3.1
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: 'all_os'
+        target: 'android'
+        arch: 'android_arm64_v8a'
+        modules: ${{ env.QT_MODULES }}
+        dir: ${{ runner.temp }}
+        py7zrversion: '==0.22.*'
+        extra: '--base ${{ env.QT_MIRROR }}'
+
+    - name: 'Install Android Qt (armeabi-v7a)'
+      uses: jurplel/install-qt-action@v4.3.1
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: 'all_os'
+        target: 'android'
+        arch: 'android_armv7'
+        modules: ${{ env.QT_MODULES }}
+        dir: ${{ runner.temp }}
+        py7zrversion: '==0.22.*'
+        extra: '--base ${{ env.QT_MIRROR }}'
+
+    - name: 'Install Android Qt (x86)'
+      uses: jurplel/install-qt-action@v4.3.1
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: 'all_os'
+        target: 'android'
+        arch: 'android_x86'
+        modules: ${{ env.QT_MODULES }}
+        dir: ${{ runner.temp }}
+        py7zrversion: '==0.22.*'
+        extra: '--base ${{ env.QT_MIRROR }}'
+
+    - name: 'Install Android Qt (x86_64)'
+      uses: jurplel/install-qt-action@v4.3.1
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: 'all_os'
+        target: 'android'
+        arch: 'android_x86_64'
+        modules: ${{ env.QT_MODULES }}
+        dir: ${{ runner.temp }}
+        py7zrversion: '==0.22.*'
+        extra: '--base ${{ env.QT_MIRROR }}'
+
+    - name: 'Setup Java'
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: 'Setup Android SDK'
+      uses: android-actions/setup-android@v4
+      with:
+        packages: "platforms;${{ env.ANDROID_PLATFORM }} ndk;${{ env.NDK_VERSION }}"
+
+    - name: 'Setup python'
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+
+    - name: 'Install conan'
+      run: pip install "conan==2.28.0"
+
+    # Signing key. Add repository secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_ALIAS
+    # and ANDROID_KEYSTORE_PASS to sign every build with the same key (needed for updates
+    # over an installed app). Without them a temporary key is generated for this build.
+    - name: 'Prepare signing key'
+      env:
+        KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+        KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+      shell: bash
+      run: |
+        if [[ -n "$KEYSTORE_BASE64" ]]; then
+          echo "$KEYSTORE_BASE64" | base64 --decode > android.keystore
+          echo "QT_ANDROID_KEYSTORE_ALIAS=$KEYSTORE_ALIAS" >> $GITHUB_ENV
+          echo "::add-mask::$KEYSTORE_PASS"
+          echo "QT_ANDROID_KEYSTORE_STORE_PASS=$KEYSTORE_PASS" >> $GITHUB_ENV
+        else
+          echo "::warning::No signing secrets set — using a temporary key. Updates will require uninstalling the previous build."
+          PASS=$(openssl rand -hex 16)
+          echo "::add-mask::$PASS"
+          keytool -genkeypair -v -keystore android.keystore -alias businessvpn -keyalg RSA -keysize 2048 \
+            -validity 10000 -storepass "$PASS" -keypass "$PASS" -dname "CN=Business VPN"
+          echo "QT_ANDROID_KEYSTORE_ALIAS=businessvpn" >> $GITHUB_ENV
+          echo "QT_ANDROID_KEYSTORE_STORE_PASS=$PASS" >> $GITHUB_ENV
+        fi
+        echo "QT_ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/android.keystore" >> $GITHUB_ENV
+
+    - name: 'Build APK'
+      env:
+        QT_INSTALL_DIR: ${{ runner.temp }}
+      shell: bash
+      run: |
+        OUT=deploy/artifacts
+        rm -rf $OUT && mkdir -p $OUT
+
+        # universal APK (all CPU types)
+        deploy/build.sh -t android --sign
+        VERSION=$(grep CMAKE_PROJECT_VERSION:STATIC deploy/build/CMakeCache.txt | cut -d= -f2)
+        mv deploy/build/client/android-build/AmneziaVPN.apk $OUT/BusinessVPN_${VERSION}_universal.apk
+        rm -rf deploy/build
+
+        # smaller APK for modern phones (arm64-v8a)
+        deploy/build.sh -t android --sign --abi arm64-v8a --build ./deploy/build/arm64-v8a
+        mv deploy/build/arm64-v8a/client/android-build/AmneziaVPN.apk $OUT/BusinessVPN_${VERSION}_arm64-v8a.apk
+
+        ls -l $OUT
+
+    - name: 'Upload APKs'
+      uses: actions/upload-artifact@v4
+      with:
+        name: BusinessVPN-Android
+        path: deploy/artifacts/*.apk
+        retention-days: 30
