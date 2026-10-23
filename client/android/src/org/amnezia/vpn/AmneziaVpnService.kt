@@ -478,19 +478,38 @@ open class AmneziaVpnService : VpnService() {
     }
 
     // Sane4ek: the tunnel can silently die after switching between Wi-Fi and mobile data.
-    // WireGuard re-handshakes at least every 2 minutes while the tunnel is alive, so a handshake
-    // older than 3 minutes means the connection is broken and is restored by reconnecting.
+    // A stale handshake alone is not enough (an idle tunnel does not re-handshake), so the tunnel
+    // counts as broken only when the handshake is older than 3 minutes AND for 90 seconds the phone
+    // keeps sending while nothing at all comes back from the server.
     private var healthCheckJob: Job? = null
 
     private fun launchHealthCheck() {
         healthCheckJob?.cancel()
         healthCheckJob = mainScope.launch {
+            var lastRx = -1L
+            var lastTx = -1L
+            var silentChecks = 0
             while (true) {
                 delay(30_000)
-                if (protocolState.value != CONNECTED) continue
-                val age = withContext(Dispatchers.IO) { vpnProto?.protocol?.secondsSinceLastHandshake() } ?: continue
-                if (age > 180) {
-                    Log.w(TAG, "No handshake for ${age}s, reconnecting")
+                if (protocolState.value != CONNECTED) {
+                    lastRx = -1L; lastTx = -1L; silentChecks = 0
+                    continue
+                }
+                val (age, stats) = withContext(Dispatchers.IO) {
+                    val protocol = vpnProto?.protocol
+                    protocol?.secondsSinceLastHandshake() to protocol?.statistics
+                }
+                val rx = stats?.rxBytes ?: -1L
+                val tx = stats?.txBytes ?: -1L
+                val receivedNothing = lastRx >= 0 && rx == lastRx
+                val sentSomething = lastTx >= 0 && tx > lastTx
+                lastRx = rx
+                lastTx = tx
+                silentChecks = if (age != null && age > 180 && receivedNothing && sentSomething) silentChecks + 1 else 0
+                if (silentChecks >= 3) {
+                    Log.w(TAG, "No answer from the server for 90s, last handshake ${age}s ago, reconnecting")
+                    silentChecks = 0
+                    lastRx = -1L; lastTx = -1L
                     reconnect()
                 }
             }
