@@ -3716,6 +3716,22 @@ Create one from the current settings.</source>
         <source>Invites</source>
         <translation>Приглашения</translation>
     </message>
+    <message>
+        <source>Checking for updates...</source>
+        <translation>Проверка обновлений...</translation>
+    </message>
+    <message>
+        <source>App update</source>
+        <translation>Обновление приложения</translation>
+    </message>
+    <message>
+        <source>You have the latest version</source>
+        <translation>У вас последняя версия</translation>
+    </message>
+    <message>
+        <source>Could not check for updates. Check your internet connection</source>
+        <translation>Не удалось проверить обновления. Проверьте подключение к интернету</translation>
+    </message>
 </context>
 <context>
     <name>PageSettingsAbout</name>
@@ -6399,6 +6415,10 @@ Create one from the current settings.</source>
         <location filename="../ui/qml/Pages2/PageUpdate.qml" line="231"/>
         <source>Retry</source>
         <translation>Повторить</translation>
+    </message>
+    <message>
+        <source>Download failed. Try again later</source>
+        <translation>Не удалось скачать. Попробуйте позже</translation>
     </message>
 </context>
 <context>

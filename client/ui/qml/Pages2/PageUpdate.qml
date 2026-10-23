@@ -28,7 +28,7 @@ PageType {
             if (UpdateController.updateState === UpdateState.ReadyToInstall) {
                 PageController.showNotificationMessage(qsTr("Done. Install the update"))
             } else if (UpdateController.updateState === UpdateState.DownloadError) {
-                PageController.showNotificationMessage(qsTr("Download failed. Download manually from amnezia.org"))
+                PageController.showNotificationMessage(qsTr("Download failed. Try again later"))
             }
         }
     }
@@ -50,6 +50,7 @@ PageType {
 
             size: IconButtonType.Small
             icon.source: "qrc:/images/controls/headphones.svg"
+            visible: false // Sane4ek: no Amnezia support links
 
             onClicked: supportDrawer.open()
         }

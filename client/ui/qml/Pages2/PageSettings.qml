@@ -14,6 +14,30 @@ import "../Config"
 PageType {
     id: root
 
+    property bool manualUpdateCheck: false
+
+    Connections {
+        target: UpdateController
+
+        function onUpdateNotFound() {
+            if (root.manualUpdateCheck) {
+                root.manualUpdateCheck = false
+                PageController.showNotificationMessage(qsTr("You have the latest version"))
+            }
+        }
+
+        function onUpdateCheckFailed() {
+            if (root.manualUpdateCheck) {
+                root.manualUpdateCheck = false
+                PageController.showErrorMessage(qsTr("Could not check for updates. Check your internet connection"))
+            }
+        }
+
+        function onUpdateFound() {
+            root.manualUpdateCheck = false
+        }
+    }
+
     Connections {
         target: ApiNewsController
         function onFetchNewsFinished() {
@@ -110,6 +134,7 @@ PageType {
         news,
         backup,
         sane4ekInvites,
+        appUpdate,
         about,
         devConsole
     ]
@@ -172,6 +197,18 @@ PageType {
         property bool isVisible: true
         readonly property var clickedHandler: function() {
             PageController.goToPage(PageEnum.PageSettingsBackup)
+        }
+    }
+
+    QtObject {
+        id: appUpdate
+
+        property string title: UpdateController.isCheckRunning ? qsTr("Checking for updates...") : qsTr("App update")
+        readonly property string leftImagePath: "qrc:/images/controls/refresh-cw.svg"
+        property bool isVisible: true
+        readonly property var clickedHandler: function() {
+            root.manualUpdateCheck = true
+            UpdateController.checkForUpdates()
         }
     }
 

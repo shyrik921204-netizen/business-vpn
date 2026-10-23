@@ -4,6 +4,18 @@ on:
   push:
     branches: [ '**' ]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Опубликовать как обновление для всех пользователей'
+        type: boolean
+        default: false
+      notes:
+        description: 'Что нового (покажется пользователям)'
+        type: string
+        default: ''
+
+permissions:
+  contents: write
 
 env:
   QT_MIRROR: https://mirrors.ocf.berkeley.edu/qt/
@@ -147,6 +159,8 @@ jobs:
     - name: 'Build APK'
       env:
         QT_INSTALL_DIR: ${{ runner.temp }}
+        SANE4EK_BUILD_NUMBER: ${{ github.run_number }}
+        APP_ANDROID_VERSION_CODE_OFFSET: ${{ github.run_number }}
       shell: bash
       run: |
         OUT=deploy/artifacts
@@ -170,3 +184,23 @@ jobs:
         name: Sane4ek-Android
         path: deploy/artifacts/*.apk
         retention-days: 30
+
+    # Published releases are what the app offers as an update (Settings -> Check for updates).
+    - name: 'Publish update'
+      if: github.event_name == 'workflow_dispatch' && inputs.publish
+      env:
+        GH_TOKEN: ${{ github.token }}
+        HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        NOTES: ${{ inputs.notes }}
+      shell: bash
+      run: |
+        if [[ "$HAS_KEY" != "true" ]]; then
+          echo "::error::Set the ANDROID_KEYSTORE_* secrets first: an update signed with a temporary key cannot be installed over the previous version"
+          exit 1
+        fi
+        N=${{ github.run_number }}
+        gh release create "build-$N" deploy/artifacts/*.apk \
+          --repo "${{ github.repository }}" \
+          --target "${{ github.sha }}" \
+          --title "Sane4ek, сборка $N" \
+          --notes "${NOTES:-Исправления и улучшения}"

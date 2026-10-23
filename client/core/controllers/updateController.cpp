@@ -1,10 +1,20 @@
 #include "updateController.h"
 
+#ifndef SANE4EK_BUILD_NUMBER
+#define SANE4EK_BUILD_NUMBER 0
+#endif
+#ifndef SANE4EK_UPDATE_URL
+#define SANE4EK_UPDATE_URL "https://api.github.com/repos/shyrik921204-netizen/business-vpn/releases/latest"
+#endif
+
 #include <QDesktopServices>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QSysInfo>
 #include <QTimer>
 #include <QUrl>
 
@@ -36,7 +46,7 @@ namespace
     const QString kInstallerLocalPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/AmneziaVPN.run";
 #endif
 
-    QStringList stringListFromJsonValue(const QJsonValue &value)
+    [[maybe_unused]] QStringList stringListFromJsonValue(const QJsonValue &value)
     {
         QStringList result;
         for (const QJsonValue &item : value.toArray()) {
@@ -99,7 +109,7 @@ bool UpdateController::isStoreUpdate() const
 #if defined(Q_OS_IOS) || defined(MACOS_NE)
     return true;
 #elif defined(Q_OS_ANDROID)
-    return AndroidController::instance()->isPlay();
+    return false; // Sane4ek is distributed as an APK, never through a store
 #else
     return false;
 #endif
@@ -134,62 +144,77 @@ void UpdateController::checkForUpdates()
     return;
 #endif
 
-    if (m_updateCheckRunning || !m_appSettingsRepository) {
+    if (m_updateCheckRunning) {
         return;
     }
     setUpdateCheckRunning(true);
 
-    auto gatewayController = QSharedPointer<GatewayController>::create(m_appSettingsRepository->getGatewayEndpoint(),
-                                                                       m_appSettingsRepository->isDevGatewayEnv(),
-                                                                       apiDefs::requestTimeoutMsecs,
-                                                                       m_appSettingsRepository->isStrictKillSwitchEnabled(),
-                                                                       m_appSettingsRepository);
+    // Sane4ek: new versions are GitHub releases of the project repository, tagged "build-<N>".
+    // The build number of this binary comes from the CI run number (SANE4EK_BUILD_NUMBER).
+    auto *network = new QNetworkAccessManager(this);
+    QNetworkRequest request(QUrl(QStringLiteral(SANE4EK_UPDATE_URL)));
+    request.setRawHeader("Accept", "application/vnd.github+json");
+    request.setRawHeader("User-Agent", "Sane4ek");
+    request.setTransferTimeout(20000);
 
-    QJsonObject apiPayload = GatewayPayloadBuilder(m_appSettingsRepository).build();
+    QNetworkReply *reply = network->get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, network]() {
+        reply->deleteLater();
+        network->deleteLater();
+        setUpdateCheckRunning(false);
 
-    // Workaround: wait before contacting gateway to avoid rate limit triggered by other requests (news etc.)
-    QTimer::singleShot(1000, this, [this, gatewayController, apiPayload]() {
-        gatewayController->postAsync(QStringLiteral("%1v1/app_update"), apiPayload)
-            .then(this, [this, gatewayController](QPair<ErrorCode, QByteArray> result) {
-                setUpdateCheckRunning(false);
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (status == 404) {
+            logger.info() << "No published releases yet";
+            emit updateNotFound();
+            return;
+        }
+        if (reply->error() != QNetworkReply::NoError) {
+            logger.error() << "Update check failed:" << reply->errorString();
+            emit updateCheckFailed();
+            return;
+        }
 
-                auto [err, gatewayResponse] = result;
-                if (err != ErrorCode::NoError) {
-                    logger.error() << "Gateway request failed, error code:" << static_cast<int>(err);
-                    emit updateCheckFailed();
-                    return;
-                }
+        const QJsonObject release = QJsonDocument::fromJson(reply->readAll()).object();
+        const QString tag = release.value("tag_name").toString();
+        const int build = tag.startsWith("build-") ? tag.mid(6).toInt() : 0;
+        if (build <= SANE4EK_BUILD_NUMBER) {
+            logger.info() << "No application update available, latest build" << build << "own build" << SANE4EK_BUILD_NUMBER;
+            emit updateNotFound();
+            return;
+        }
 
-                QJsonObject gatewayData = QJsonDocument::fromJson(gatewayResponse).object();
-                if (!gatewayData.value(apiDefs::key::updateAvailable).toBool()) {
-                    logger.info() << "No application update available";
-                    emit updateNotFound();
-                    return;
-                }
+        QString apkUrl, universalUrl;
+        for (const QJsonValue &v : release.value("assets").toArray()) {
+            const QString name = v.toObject().value("name").toString();
+            const QString url = v.toObject().value("browser_download_url").toString();
+            if (name.endsWith("arm64-v8a.apk")) {
+                apkUrl = url;
+            } else if (name.endsWith("universal.apk")) {
+                universalUrl = url;
+            }
+        }
+        const QString abis = QSysInfo::buildCpuArchitecture();
+        if (apkUrl.isEmpty() || !abis.contains("arm64")) {
+            apkUrl = universalUrl.isEmpty() ? apkUrl : universalUrl;
+        }
 
-                m_version = gatewayData.value(apiDefs::key::updateVersion).toString();
-                m_releaseDate = gatewayData.value(apiDefs::key::releaseDate).toString();
-                m_description = gatewayData.value(apiDefs::key::updateDescription).toString();
-                m_tags = stringListFromJsonValue(gatewayData.value(apiDefs::key::updateTags));
-                m_newFeatures = stringListFromJsonValue(gatewayData.value(apiDefs::key::newFeatures));
-                m_improvements = stringListFromJsonValue(gatewayData.value(apiDefs::key::improvements));
-                m_bugFixes = stringListFromJsonValue(gatewayData.value(apiDefs::key::bugFixes));
-                m_downloadBaseUrl = gatewayData.value(apiDefs::key::downloadBaseUrl).toString();
-                if (m_downloadBaseUrl.endsWith('/')) {
-                    m_downloadBaseUrl.chop(1);
-                }
-                m_releasePageUrl = gatewayData.value(apiDefs::key::releasePageUrl).toString();
+        m_version = release.value("name").toString();
+        if (m_version.isEmpty()) {
+            m_version = tag;
+        }
+        m_releaseDate = release.value("published_at").toString().left(10);
+        m_description = release.value("body").toString();
+        m_tags.clear();
+        m_newFeatures.clear();
+        m_improvements.clear();
+        m_bugFixes.clear();
+        m_downloadBaseUrl.clear();
+        m_releasePageUrl = apkUrl.isEmpty() ? release.value("html_url").toString() : apkUrl;
 
-                if (m_version.isEmpty()) {
-                    logger.error() << "Update response has no version, ignoring";
-                    emit updateCheckFailed();
-                    return;
-                }
-
-                logger.info() << "Application update available:" << m_version;
-                setUpdateState(UpdateState::State::Idle);
-                emit updateFound();
-            });
+        logger.info() << "Application update available:" << tag;
+        setUpdateState(UpdateState::State::Idle);
+        emit updateFound();
     });
 }
 

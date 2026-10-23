@@ -53,6 +53,11 @@ set(LIBS ${LIBS}
     amnezia::libagw
 )
 
+# Sane4ek: build number for the in-app updater (CI run number), see .github/workflows/sane4ek-android.yml
+if(DEFINED ENV{SANE4EK_BUILD_NUMBER} AND NOT "$ENV{SANE4EK_BUILD_NUMBER}" STREQUAL "")
+    add_compile_definitions(SANE4EK_BUILD_NUMBER=$ENV{SANE4EK_BUILD_NUMBER})
+endif()
+
 find_package(Qt6 QUIET OPTIONAL_COMPONENTS CorePrivate)
 if(TARGET Qt6::CorePrivate)
     set(LIBS ${LIBS} Qt6::CorePrivate)
