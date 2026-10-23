@@ -3,6 +3,8 @@ name: 'Sane4ek — Android APK'
 on:
   push:
     branches: [ '**' ]
+    # A version tag (v1, v1.2, ...) on a tested commit publishes it as an update
+    tags: [ 'v*' ]
   workflow_dispatch:
     inputs:
       publish:
@@ -187,7 +189,7 @@ jobs:
 
     # Published releases are what the app offers as an update (Settings -> Check for updates).
     - name: 'Publish update'
-      if: github.event_name == 'workflow_dispatch' && inputs.publish
+      if: (github.event_name == 'workflow_dispatch' && inputs.publish) || startsWith(github.ref, 'refs/tags/v')
       env:
         GH_TOKEN: ${{ github.token }}
         HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
@@ -199,6 +201,11 @@ jobs:
           exit 1
         fi
         N=${{ github.run_number }}
+        if [[ "${{ github.ref_type }}" == "tag" ]]; then
+          # release notes = message of the annotated version tag
+          git fetch --force origin "${{ github.ref }}:${{ github.ref }}" 2>/dev/null || true
+          NOTES=$(git tag -l --format='%(contents)' "${{ github.ref_name }}")
+        fi
         gh release create "build-$N" deploy/artifacts/*.apk \
           --repo "${{ github.repository }}" \
           --target "${{ github.sha }}" \
