@@ -165,6 +165,7 @@ jobs:
         APP_ANDROID_VERSION_CODE_OFFSET: ${{ github.run_number }}
       shell: bash
       run: |
+        exec > >(tee -a "$GITHUB_WORKSPACE/build.log") 2>&1
         OUT=deploy/artifacts
         rm -rf $OUT && mkdir -p $OUT
 
@@ -179,6 +180,15 @@ jobs:
         mv deploy/build/arm64-v8a/client/android-build/AmneziaVPN.apk $OUT/Sane4ek_${VERSION}_arm64-v8a.apk
 
         ls -l $OUT
+
+    - name: 'Show build errors'
+      if: failure()
+      shell: bash
+      run: |
+        grep -E "error:|^e: |What went wrong|FAILED|Error:|Exception" -A4 build.log | grep -v "^--$" | head -60 | while IFS= read -r line; do
+          echo "::error::${line:0:900}"
+        done
+        tail -40 build.log
 
     - name: 'Upload APKs'
       uses: actions/upload-artifact@v4
