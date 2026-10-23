@@ -477,7 +477,6 @@ open class AmneziaVpnService : VpnService() {
         }
     }
 
-    @MainThread
     // Sane4ek: the tunnel can silently die after switching between Wi-Fi and mobile data.
     // WireGuard re-handshakes at least every 2 minutes while the tunnel is alive, so a handshake
     // older than 3 minutes means the connection is broken and is restored by reconnecting.
@@ -503,6 +502,7 @@ open class AmneziaVpnService : VpnService() {
         healthCheckJob = null
     }
 
+    @MainThread
     private fun stopTrafficStatsUpdateJob() {
         Log.d(TAG, "Stop traffic stats update")
         trafficStatsUpdateJob?.cancel()
