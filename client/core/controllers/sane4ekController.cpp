@@ -17,6 +17,7 @@
 #include <QSslSocket>
 #include <QSysInfo>
 #include <QUrl>
+#include <QThread>
 #include <QUuid>
 #include <QtConcurrent>
 
@@ -394,7 +395,21 @@ void Sane4ekController::upload()
             if (e == ErrorCode::NoError)
                 e = ssh.uploadFileToHost(server.credentials, install.toUtf8(), "/tmp/sane4ek-build/install.sh");
             if (e == ErrorCode::NoError)
-                e = ssh.runScript(server.credentials, "sh /tmp/sane4ek-build/install.sh 2>&1", cb, cb);
+            {
+                // The first docker build prints nothing for minutes and the SSH read gives up on a
+                // silent channel, so run the installer in the background and poll its log.
+                e = ssh.runScript(server.credentials,
+                                  "rm -f /tmp/sane4ek-install.log; nohup sh -c 'sh /tmp/sane4ek-build/install.sh; "
+                                  "echo SANE4EK_EXIT=$?' > /tmp/sane4ek-install.log 2>&1 < /dev/null &");
+                for (int attempt = 0; e == ErrorCode::NoError && attempt < 200; ++attempt) { // up to ~10 min
+                    QThread::sleep(3);
+                    out.clear();
+                    e = ssh.runScript(server.credentials, "cat /tmp/sane4ek-install.log 2>/dev/null", cb, cb);
+                    if (out.contains("SANE4EK_EXIT=")) {
+                        break;
+                    }
+                }
+            }
 
             const int begin = out.indexOf("-----BEGIN CERTIFICATE-----");
             const int end = out.indexOf("-----END CERTIFICATE-----");
