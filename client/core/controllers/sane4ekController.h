@@ -10,6 +10,7 @@
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
+#include <QVariantMap>
 #include <functional>
 
 #include "core/utils/commonStructs.h"
@@ -30,6 +31,8 @@ class Sane4ekController : public QObject
     Q_PROPERTY(bool hasInvite READ hasInvite NOTIFY inviteStateChanged)
     Q_PROPERTY(bool busy READ isBusy NOTIFY busyChanged)
     Q_PROPERTY(QVariantList invites READ invites NOTIFY invitesChanged)
+    Q_PROPERTY(QVariantMap pings READ pings NOTIFY pingsChanged)
+    Q_PROPERTY(bool pingRunning READ isPingRunning NOTIFY pingsChanged)
 
 public:
     explicit Sane4ekController(SecureServersRepository *serversRepository, ImportController *importController,
@@ -39,6 +42,8 @@ public:
     bool hasInvite() const;
     bool isBusy() const { return m_busy; }
     QVariantList invites() const;
+    QVariantMap pings() const { return m_pings; }
+    bool isPingRunning() const { return m_pingPending > 0; }
 
     static bool isInviteLink(const QString &text);
 
@@ -53,6 +58,9 @@ public slots:
     QString inviteLink(const QString &inviteId) const;
     QString inviteQrCode(const QString &inviteId) const;
 
+    // ping of every server in the list: ms, -1 = no answer, -2 = measuring
+    void pingAll();
+
 signals:
     void adminStateChanged();
     void inviteStateChanged();
@@ -60,6 +68,7 @@ signals:
     void invitesChanged();
     void operationFinished(bool success, const QString &message);
     void refreshFinished(bool success);
+    void pingsChanged();
 
 public:
     struct Endpoint
@@ -109,6 +118,9 @@ private:
     ImportController *m_importController;
     QNetworkAccessManager *m_network;
     bool m_busy = false;
+    QVariantMap m_pings;
+    int m_pingPending = 0;
+    QString existingServerIdForHost(const QString &host) const;
 };
 
 #endif // SANE4EKCONTROLLER_H

@@ -417,7 +417,25 @@ void ImportController::importConfig(const QJsonObject &config)
     credentials.secretData = config.value(configKey::password).toString();
 
     if (credentials.isValid() || config.contains(configKey::containers)) {
-        m_serversRepository->addServer(QString(), config, serverConfigUtils::configTypeFromJson(config));
+        // Sane4ek: a server with the same address is never added twice
+        const auto kind = serverConfigUtils::configTypeFromJson(config);
+        if (!credentials.hostName.isEmpty()) {
+            for (const QString &id : m_serversRepository->orderedServerIds()) {
+                const auto existing = m_serversRepository->serverJsonById(id);
+                if (!existing.has_value() || existing->value(configKey::hostName).toString() != credentials.hostName) {
+                    continue;
+                }
+                if (m_serversRepository->serverKind(id) == serverConfigUtils::ConfigType::SelfHostedAdmin
+                    && kind != serverConfigUtils::ConfigType::SelfHostedAdmin) {
+                    emit importErrorOccurred(ErrorCode::ApiConfigAlreadyAdded, true); // keep the managed server
+                    return;
+                }
+                m_serversRepository->editServer(id, config, kind); // newer key for the same server
+                emit importFinished();
+                return;
+            }
+        }
+        m_serversRepository->addServer(QString(), config, kind);
         emit importFinished();
     } else if (config.contains(configKey::configVersion)) {
         quint16 crc = qChecksum(QJsonDocument(config).toJson());

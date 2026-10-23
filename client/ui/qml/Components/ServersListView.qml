@@ -58,16 +58,23 @@ ListViewType {
         objectName: "serverRadioButton"
 
         readonly property bool subscriptionAlert: isServerFromGatewayApi && (isSubscriptionExpired || isSubscriptionExpiringSoon)
+        // Sane4ek ping: ms, -1 no answer, -2 measuring, undefined not measured yet
+        readonly property var ping: Sane4ekController.pings[hostName]
+        readonly property string pingText: ping === undefined ? ""
+                                           : (ping === -2 ? qsTr("ping...")
+                                              : (ping === -1 ? qsTr("not responding") : qsTr("%1 ms").arg(ping)))
 
         width: root.width - root.leftMargin - root.rightMargin
 
         text: name
         subtitle: subscriptionAlert
                   ? (isSubscriptionExpired ? qsTr("Subscription expired. Please renew") : qsTr("Subscription expiring soon"))
-                  : serverDescription
+                  : (pingText === "" ? serverDescription : pingText + " · " + serverDescription)
         subtitleColor: subscriptionAlert
                        ? (isSubscriptionExpired ? AmneziaStyle.color.statusDestructive : AmneziaStyle.color.statusWarning)
-                       : AmneziaStyle.color.textTertiary
+                       : (ping === -1 ? AmneziaStyle.color.statusDestructive
+                                      : (ping !== undefined && ping > 0 && ping < 150 ? AmneziaStyle.color.statusSuccess
+                                                                                      : AmneziaStyle.color.textTertiary))
         showWarning: ServersUiController.serverHasOutdatedAwgContainer(serverId)
         showSeparator: index < root.count - 1
 

@@ -916,6 +916,14 @@ Already installed containers were found on the server. All installed containers 
         <source>Scan QR code</source>
         <translation>Сканировать QR-код</translation>
     </message>
+    <message>
+        <source>Check ping</source>
+        <translation>Проверить пинг</translation>
+    </message>
+    <message>
+        <source>Checking...</source>
+        <translation>Проверка...</translation>
+    </message>
 </context>
 <context>
     <name>PageProtocolAwgClientSettings</name>
@@ -7372,6 +7380,18 @@ FileZilla или другие SFTP-клиенты, а также смонтир�
         <location filename="../ui/qml/Components/ServersListView.qml" line="81"/>
         <source>Unable change server while there is an active connection</source>
         <translation>Невозможно изменить сервер во время активного соединения</translation>
+    </message>
+    <message>
+        <source>ping...</source>
+        <translation>пинг...</translation>
+    </message>
+    <message>
+        <source>not responding</source>
+        <translation>не отвечает</translation>
+    </message>
+    <message>
+        <source>%1 ms</source>
+        <translation>%1 мс</translation>
     </message>
 </context>
 <context>

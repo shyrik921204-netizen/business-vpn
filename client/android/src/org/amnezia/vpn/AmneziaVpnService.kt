@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.amnezia.vpn.protocol.BadConfigException
 import org.amnezia.vpn.protocol.ProtocolState.CONNECTED
@@ -383,11 +384,13 @@ open class AmneziaVpnService : VpnService() {
                         networkState.bindNetworkListener()
                         // if (isActivityConnected) launchSendingStatistics()
                         launchTrafficStatsUpdate()
+                        launchHealthCheck()
                     }
 
                     DISCONNECTED -> {
                         networkState.unbindNetworkListener()
                         stopTrafficStatsUpdateJob()
+                        stopHealthCheck()
                         // stopSendingStatistics()
                         if (!isServiceBound) stopService()
                     }
@@ -395,6 +398,7 @@ open class AmneziaVpnService : VpnService() {
                     DISCONNECTING -> {
                         networkState.unbindNetworkListener()
                         stopTrafficStatsUpdateJob()
+                        stopHealthCheck()
                         // stopSendingStatistics()
                     }
 
@@ -474,6 +478,31 @@ open class AmneziaVpnService : VpnService() {
     }
 
     @MainThread
+    // Sane4ek: the tunnel can silently die after switching between Wi-Fi and mobile data.
+    // WireGuard re-handshakes at least every 2 minutes while the tunnel is alive, so a handshake
+    // older than 3 minutes means the connection is broken and is restored by reconnecting.
+    private var healthCheckJob: Job? = null
+
+    private fun launchHealthCheck() {
+        healthCheckJob?.cancel()
+        healthCheckJob = mainScope.launch {
+            while (true) {
+                delay(30_000)
+                if (protocolState.value != CONNECTED) continue
+                val age = withContext(Dispatchers.IO) { vpnProto?.protocol?.secondsSinceLastHandshake() } ?: continue
+                if (age > 180) {
+                    Log.w(TAG, "No handshake for ${age}s, reconnecting")
+                    reconnect()
+                }
+            }
+        }
+    }
+
+    private fun stopHealthCheck() {
+        healthCheckJob?.cancel()
+        healthCheckJob = null
+    }
+
     private fun stopTrafficStatsUpdateJob() {
         Log.d(TAG, "Stop traffic stats update")
         trafficStatsUpdateJob?.cancel()

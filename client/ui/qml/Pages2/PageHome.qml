@@ -478,14 +478,26 @@ PageType {
                     onClicked: containersSheet.open()
                 }
 
-                BodyTextType {
+                RowLayout {
                     Layout.fillWidth: true
                     Layout.topMargin: containersDropDown.visible ? 24 : 16
                     Layout.leftMargin: 16
                     Layout.rightMargin: 16
 
-                    text: qsTr("Servers")
-                    color: AmneziaStyle.color.textTertiary
+                    BodyTextType {
+                        Layout.fillWidth: true
+
+                        text: qsTr("Servers")
+                        color: AmneziaStyle.color.textTertiary
+                    }
+
+                    // Sane4ek: measure the ping of every server
+                    ChipType {
+                        enabled: !Sane4ekController.pingRunning
+                        text: Sane4ekController.pingRunning ? qsTr("Checking...") : qsTr("Check ping")
+
+                        onClicked: Sane4ekController.pingAll()
+                    }
                 }
             }
 

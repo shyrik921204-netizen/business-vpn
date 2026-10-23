@@ -244,6 +244,12 @@ open class Wireguard : Protocol() {
         state.value = DISCONNECTED
     }
 
+    override fun secondsSinceLastHandshake(): Long? {
+        val last = getLastHandshake()
+        if (last <= 0L) return null
+        return System.currentTimeMillis() / 1000 - last
+    }
+
     override fun reconnectVpn(vpnBuilder: Builder, protect: (Int) -> Boolean) {
         val config = this.config ?: throw VpnException("Reconnect config is empty")
         start(config, vpnBuilder, protect, true)

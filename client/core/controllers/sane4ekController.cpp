@@ -18,6 +18,10 @@
 #include <QSysInfo>
 #include <QUrl>
 #include <QThread>
+#include <QElapsedTimer>
+#include <QProcess>
+#include <QRegularExpression>
+#include <QTcpSocket>
 #include <QTimer>
 #include <QUuid>
 #include <QtConcurrent>
@@ -191,6 +195,45 @@ namespace
         return invite;
     }
 
+    // Round-trip time to a server in ms, -1 if it does not answer.
+    // ICMP ping first; many servers drop ICMP, so then the TCP handshake time to common ports
+    // (an accepted or refused connection both mean the host is alive).
+    int measurePing(const QString &host)
+    {
+        QProcess p;
+        const QString bin = QFile::exists("/system/bin/ping") ? QStringLiteral("/system/bin/ping") : QStringLiteral("ping");
+        p.start(bin, { "-c", "3", "-i", "0.3", "-W", "2", host });
+        if (p.waitForFinished(9000)) {
+            const QString out = QString::fromLocal8Bit(p.readAllStandardOutput());
+            static const QRegularExpression avgRe(R"(= [\d.]+/([\d.]+)/)");
+            static const QRegularExpression oneRe(R"(time[=<]([\d.]+))");
+            QRegularExpressionMatch m = avgRe.match(out);
+            if (!m.hasMatch()) {
+                m = oneRe.match(out);
+            }
+            if (m.hasMatch()) {
+                return qMax(1, qRound(m.captured(1).toDouble()));
+            }
+        } else {
+            p.kill();
+            p.waitForFinished(1000);
+        }
+
+        for (int port : { 47443, 22, 443 }) {
+            QTcpSocket socket;
+            QElapsedTimer timer;
+            timer.start();
+            socket.connectToHost(host, static_cast<quint16>(port));
+            if (socket.waitForConnected(2500) || socket.error() == QAbstractSocket::ConnectionRefusedError) {
+                const int ms = static_cast<int>(timer.elapsed());
+                socket.abort();
+                return qMax(1, ms);
+            }
+            socket.abort();
+        }
+        return -1;
+    }
+
     Sane4ekController::Endpoint endpointFromJson(const QJsonObject &o)
     {
         Sane4ekController::Endpoint e;
@@ -211,6 +254,12 @@ Sane4ekController::Sane4ekController(SecureServersRepository *serversRepository,
     connect(m_serversRepository, &SecureServersRepository::serverAdded, this, &Sane4ekController::adminStateChanged);
     connect(m_serversRepository, &SecureServersRepository::serverEdited, this, &Sane4ekController::adminStateChanged);
     connect(m_serversRepository, &SecureServersRepository::serverRemoved, this, &Sane4ekController::adminStateChanged);
+
+    // Pings in the server list: shortly after start and whenever servers are added
+    QTimer::singleShot(4000, this, &Sane4ekController::pingAll);
+    connect(m_serversRepository, &SecureServersRepository::serverAdded, this, [this]() {
+        QTimer::singleShot(1500, this, &Sane4ekController::pingAll);
+    });
 
     // A user with the built-in invite gets the servers on the first start without pressing anything
     QTimer::singleShot(2500, this, [this]() {
@@ -835,6 +884,13 @@ void Sane4ekController::applyRegistrations(const QJsonObject &manifest, const QM
                 || existing->value(configKey::description) != config.value(configKey::description)) {
                 m_serversRepository->editServer(localId, config, kind);
             }
+        } else if (const QString sameHostId = existingServerIdForHost(s.value("h").toString()); !sameHostId.isEmpty()) {
+            // The same server is already in the list: no duplicates. A server the user manages over SSH
+            // is left alone, any other entry (e.g. an old shared key) is replaced by the personal key.
+            if (m_serversRepository->serverKind(sameHostId) != serverConfigUtils::ConfigType::SelfHostedAdmin) {
+                m_serversRepository->editServer(sameHostId, config, kind);
+                managed[key] = sameHostId;
+            }
         } else {
             const QString id = m_serversRepository->addServer(QString(), config, kind);
             if (m_serversRepository->indexOfServerId(id) >= 0) {
@@ -877,3 +933,55 @@ void Sane4ekController::removeAllManagedServers()
     store().remove("client/managed");
     store().sync();
 }
+
+// ------------------------------------------------------------------------------------------ ping
+
+void Sane4ekController::pingAll()
+{
+    if (m_pingPending > 0) {
+        return;
+    }
+    QStringList hosts;
+    for (const QString &id : m_serversRepository->orderedServerIds()) {
+        const auto json = m_serversRepository->serverJsonById(id);
+        const QString host = json.has_value() ? json->value(configKey::hostName).toString() : QString();
+        if (!host.isEmpty() && !hosts.contains(host)) {
+            hosts.append(host);
+        }
+    }
+    if (hosts.isEmpty()) {
+        return;
+    }
+
+    for (const QString &host : hosts) {
+        m_pings[host] = -2;
+    }
+    m_pingPending = hosts.size();
+    emit pingsChanged();
+
+    for (const QString &host : hosts) {
+        auto *watcher = new QFutureWatcher<int>(this);
+        connect(watcher, &QFutureWatcher<int>::finished, this, [this, watcher, host]() {
+            m_pings[host] = watcher->result();
+            watcher->deleteLater();
+            m_pingPending = qMax(0, m_pingPending - 1);
+            emit pingsChanged();
+        });
+        watcher->setFuture(QtConcurrent::run([host]() { return measurePing(host); }));
+    }
+}
+
+QString Sane4ekController::existingServerIdForHost(const QString &host) const
+{
+    if (host.isEmpty()) {
+        return QString();
+    }
+    for (const QString &id : m_serversRepository->orderedServerIds()) {
+        const auto json = m_serversRepository->serverJsonById(id);
+        if (json.has_value() && json->value(configKey::hostName).toString() == host) {
+            return id;
+        }
+    }
+    return QString();
+}
+

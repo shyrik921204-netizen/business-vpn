@@ -44,6 +44,9 @@ abstract class Protocol {
 
     abstract fun reconnectVpn(vpnBuilder: Builder, protect: (Int) -> Boolean)
 
+    /** Seconds since the last successful handshake with the server, null if unknown */
+    open fun secondsSinceLastHandshake(): Long? = null
+
     protected fun ProtocolConfig.Builder.configSplitTunneling(config: JSONObject) {
         if (!allowSplitTunneling) {
             Log.i(TAG, "Global address split tunneling is prohibited, " +
