@@ -121,6 +121,7 @@ private:
     QVariantMap m_pings;
     int m_pingPending = 0;
     QString existingServerIdForHost(const QString &host) const;
+    void removeDuplicateServers();
 };
 
 #endif // SANE4EKCONTROLLER_H

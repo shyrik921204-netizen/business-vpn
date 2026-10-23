@@ -494,7 +494,7 @@ PageType {
                     // Sane4ek: measure the ping of every server
                     ChipType {
                         enabled: !Sane4ekController.pingRunning
-                        text: Sane4ekController.pingRunning ? qsTr("Checking...") : qsTr("Check ping")
+                        text: Sane4ekController.pingRunning ? qsTr("Checking...") : "Test ping"
 
                         onClicked: Sane4ekController.pingAll()
                     }

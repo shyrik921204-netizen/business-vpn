@@ -202,8 +202,8 @@ namespace
     {
         QProcess p;
         const QString bin = QFile::exists("/system/bin/ping") ? QStringLiteral("/system/bin/ping") : QStringLiteral("ping");
-        p.start(bin, { "-c", "3", "-i", "0.3", "-W", "2", host });
-        if (p.waitForFinished(9000)) {
+        p.start(bin, { "-c", "5", "-i", "0.2", "-W", "2", host }); // average of 5 replies
+        if (p.waitForFinished(12000)) {
             const QString out = QString::fromLocal8Bit(p.readAllStandardOutput());
             static const QRegularExpression avgRe(R"(= [\d.]+/([\d.]+)/)");
             static const QRegularExpression oneRe(R"(time[=<]([\d.]+))");
@@ -220,16 +220,25 @@ namespace
         }
 
         for (int port : { 47443, 22, 443 }) {
-            QTcpSocket socket;
-            QElapsedTimer timer;
-            timer.start();
-            socket.connectToHost(host, static_cast<quint16>(port));
-            if (socket.waitForConnected(2500) || socket.error() == QAbstractSocket::ConnectionRefusedError) {
-                const int ms = static_cast<int>(timer.elapsed());
+            qint64 total = 0;
+            int samples = 0;
+            for (int attempt = 0; attempt < 5; ++attempt) {
+                QTcpSocket socket;
+                QElapsedTimer timer;
+                timer.start();
+                socket.connectToHost(host, static_cast<quint16>(port));
+                const bool alive = socket.waitForConnected(2500) || socket.error() == QAbstractSocket::ConnectionRefusedError;
+                const qint64 ms = timer.elapsed();
                 socket.abort();
-                return qMax(1, ms);
+                if (!alive) {
+                    break; // this port is filtered, try the next one
+                }
+                total += ms;
+                samples++;
             }
-            socket.abort();
+            if (samples > 0) {
+                return qMax(1, static_cast<int>(total / samples));
+            }
         }
         return -1;
     }
@@ -254,6 +263,9 @@ Sane4ekController::Sane4ekController(SecureServersRepository *serversRepository,
     connect(m_serversRepository, &SecureServersRepository::serverAdded, this, &Sane4ekController::adminStateChanged);
     connect(m_serversRepository, &SecureServersRepository::serverEdited, this, &Sane4ekController::adminStateChanged);
     connect(m_serversRepository, &SecureServersRepository::serverRemoved, this, &Sane4ekController::adminStateChanged);
+
+    // Servers with the same address added before duplicates were blocked: keep one of them
+    QTimer::singleShot(1000, this, &Sane4ekController::removeDuplicateServers);
 
     // Pings in the server list: shortly after start and whenever servers are added
     QTimer::singleShot(4000, this, &Sane4ekController::pingAll);
@@ -983,5 +995,59 @@ QString Sane4ekController::existingServerIdForHost(const QString &host) const
         }
     }
     return QString();
+}
+
+void Sane4ekController::removeDuplicateServers()
+{
+    QJsonObject managed = readObject("client/managed");
+    QMap<QString, QStringList> idsByHost;
+    for (const QString &id : m_serversRepository->orderedServerIds()) {
+        const auto json = m_serversRepository->serverJsonById(id);
+        const QString host = json.has_value() ? json->value(configKey::hostName).toString() : QString();
+        if (!host.isEmpty()) {
+            idsByHost[host].append(id);
+        }
+    }
+
+    QStringList managedIds;
+    for (const QString &key : managed.keys()) {
+        managedIds.append(managed.value(key).toString());
+    }
+
+    for (auto it = idsByHost.cbegin(); it != idsByHost.cend(); ++it) {
+        const QStringList ids = it.value();
+        if (ids.size() < 2) {
+            continue;
+        }
+        // keep: a server managed over SSH, else the one with the personal Sane4ek key, else the first
+        QString keep = ids.first();
+        for (const QString &id : ids) {
+            if (m_serversRepository->serverKind(id) == serverConfigUtils::ConfigType::SelfHostedAdmin) {
+                keep = id;
+                break;
+            }
+            if (managedIds.contains(id)) {
+                keep = id;
+            }
+        }
+        for (const QString &id : ids) {
+            if (id != keep && m_serversRepository->indexOfServerId(id) >= 0) {
+                qInfo() << "Sane4ek: removing duplicate server" << it.key();
+                m_serversRepository->removeServer(id);
+                const bool keepIsAdmin =
+                        m_serversRepository->serverKind(keep) == serverConfigUtils::ConfigType::SelfHostedAdmin;
+                for (const QString &key : managed.keys()) {
+                    if (managed.value(key).toString() == id) {
+                        if (keepIsAdmin) {
+                            managed.remove(key); // never overwrite a server managed over SSH
+                        } else {
+                            managed[key] = keep;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    writeJson("client/managed", QJsonDocument(managed));
 }
 
