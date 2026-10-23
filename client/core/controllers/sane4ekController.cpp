@@ -18,6 +18,7 @@
 #include <QSysInfo>
 #include <QUrl>
 #include <QThread>
+#include <QTimer>
 #include <QUuid>
 #include <QtConcurrent>
 
@@ -172,6 +173,24 @@ namespace
         return QJsonObject { { "h", e.host }, { "p", e.port }, { "f", e.fingerprint } };
     }
 
+    // sane4ek://<base64url json> -> invite object, empty if invalid
+    QJsonObject parseInvite(const QString &text)
+    {
+        const QString trimmed = text.trimmed();
+        if (!trimmed.startsWith(QLatin1String(invitePrefix))) {
+            return QJsonObject();
+        }
+        const QByteArray json = QByteArray::fromBase64(trimmed.mid(int(strlen(invitePrefix))).toLatin1(),
+                                                       QByteArray::Base64UrlEncoding);
+        const QJsonObject invite = QJsonDocument::fromJson(json).object();
+        if (invite.value("t").toString().isEmpty()
+            || QByteArray::fromBase64(invite.value("k").toString().toLatin1()).size() != 32
+            || invite.value("s").toArray().isEmpty()) {
+            return QJsonObject();
+        }
+        return invite;
+    }
+
     Sane4ekController::Endpoint endpointFromJson(const QJsonObject &o)
     {
         Sane4ekController::Endpoint e;
@@ -192,6 +211,13 @@ Sane4ekController::Sane4ekController(SecureServersRepository *serversRepository,
     connect(m_serversRepository, &SecureServersRepository::serverAdded, this, &Sane4ekController::adminStateChanged);
     connect(m_serversRepository, &SecureServersRepository::serverEdited, this, &Sane4ekController::adminStateChanged);
     connect(m_serversRepository, &SecureServersRepository::serverRemoved, this, &Sane4ekController::adminStateChanged);
+
+    // A user with the built-in invite gets the servers on the first start without pressing anything
+    QTimer::singleShot(2500, this, [this]() {
+        if (!isAdmin() && m_serversRepository->serversCount() == 0 && hasInvite()) {
+            refresh();
+        }
+    });
 }
 
 void Sane4ekController::setBusy(bool busy)
@@ -541,7 +567,13 @@ bool Sane4ekController::isInviteLink(const QString &text)
 
 QJsonObject Sane4ekController::clientInvite() const
 {
-    return readObject("client/invite");
+    const QJsonObject stored = readObject("client/invite");
+    if (!stored.isEmpty() || isAdmin()) {
+        return stored;
+    }
+    // Invite embedded into this build (GitHub secret SANE4EK_DEFAULT_INVITE)
+    static const QJsonObject builtIn = parseInvite(readResource(":/server_scripts/sane4ek/default_invite.txt"));
+    return builtIn;
 }
 
 bool Sane4ekController::hasInvite() const
@@ -555,11 +587,8 @@ bool Sane4ekController::acceptInvite(const QString &text)
     if (!isInviteLink(trimmed)) {
         return false;
     }
-    const QByteArray json = QByteArray::fromBase64(trimmed.mid(int(strlen(invitePrefix))).toLatin1(),
-                                                   QByteArray::Base64UrlEncoding);
-    const QJsonObject invite = QJsonDocument::fromJson(json).object();
-    if (invite.value("t").toString().isEmpty() || QByteArray::fromBase64(invite.value("k").toString().toLatin1()).size() != 32
-        || invite.value("s").toArray().isEmpty()) {
+    const QJsonObject invite = parseInvite(trimmed);
+    if (invite.isEmpty()) {
         emit operationFinished(false, tr("Invalid invite"));
         return true;
     }

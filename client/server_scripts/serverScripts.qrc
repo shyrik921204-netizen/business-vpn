@@ -3,6 +3,7 @@
         <file>sane4ek/agent.py</file>
         <file>sane4ek/Dockerfile</file>
         <file>sane4ek/install.sh</file>
+        <file>sane4ek/default_invite.txt</file>
         <file>awg/configure_container.sh</file>
         <file>awg/Dockerfile</file>
         <file>awg/run_container.sh</file>

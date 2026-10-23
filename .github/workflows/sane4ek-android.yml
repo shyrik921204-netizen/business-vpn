@@ -108,6 +108,16 @@ jobs:
     - name: 'Install conan'
       run: pip install "conan==2.28.0"
 
+    # Invite built into the APK: users get the servers on the first start without a QR code.
+    # Set the repository secret SANE4EK_DEFAULT_INVITE to an invite link (sane4ek://...).
+    - name: 'Embed default invite'
+      env:
+        INVITE: ${{ secrets.SANE4EK_DEFAULT_INVITE }}
+      shell: bash
+      run: |
+        printf '%s' "$INVITE" > client/server_scripts/sane4ek/default_invite.txt
+        if [[ -z "$INVITE" ]]; then echo "::warning::SANE4EK_DEFAULT_INVITE is not set - users will need an invite QR"; fi
+
     # Signing key. Add repository secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_ALIAS
     # and ANDROID_KEYSTORE_PASS to sign every build with the same key (needed for updates
     # over an installed app). Without them a temporary key is generated for this build.
