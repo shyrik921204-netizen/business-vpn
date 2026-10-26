@@ -48,10 +48,20 @@ ListViewType {
     Connections {
         target: ConnectionController
         function onConnectionStateChanged() {
+            // pings measured while the tunnel was reconnecting are all "no answer": measure again
+            if (ConnectionController.isConnected && !root.switchPending) {
+                pingAfterConnect.restart()
+            }
             if (root.switchPending && !ConnectionController.isConnected && !ConnectionController.isConnectionInProgress) {
                 root.finishSwitch()
             }
         }
+    }
+
+    Timer {
+        id: pingAfterConnect
+        interval: 2000
+        onTriggered: Sane4ekController.pingAll()
     }
 
     Timer {
@@ -93,7 +103,9 @@ ListViewType {
 
         readonly property bool subscriptionAlert: isServerFromGatewayApi && (isSubscriptionExpired || isSubscriptionExpiringSoon)
         // Sane4ek ping: ms, -1 no answer, -2 measuring, undefined not measured yet
-        readonly property var ping: Sane4ekController.pings[hostName]
+        // while the VPN is (re)connecting no server can be reached, so no ping is shown
+        readonly property var ping: ConnectionController.isConnectionInProgress ? undefined
+                                                                                : Sane4ekController.pings[hostName]
         readonly property string pingText: ping === undefined ? ""
                                            : (ping === -2 ? qsTr("ping...")
                                               : (ping === -1 ? qsTr("not responding") : qsTr("%1 ms").arg(ping)))
