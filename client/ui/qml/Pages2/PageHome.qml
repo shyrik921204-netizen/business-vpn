@@ -95,7 +95,6 @@ PageType {
         target: PageController
 
         function onRestorePageHomeState(isContainerInstalled) {
-            drawer.open()
             if (isContainerInstalled && root.containersDropDownRef) {
                 root.containersDropDownRef.open()
             }
@@ -106,7 +105,7 @@ PageType {
         objectName: "homeColumnItem"
 
         anchors.fill: parent
-        anchors.bottomMargin: collapsedBar.height
+        anchors.bottomMargin: 0 // Sane4ek: no bottom drawer, servers are listed on the page
 
         // Sane4ek: publish the server list to all servers (administrator only)
         Sane4ekRoundButton {
@@ -278,9 +277,9 @@ PageType {
 
             Item {
                 Layout.fillWidth: true
-                Layout.fillHeight: true
+                Layout.preferredHeight: 206
                 Layout.topMargin: 16
-                Layout.bottomMargin: 28
+                Layout.bottomMargin: 16
 
                 ConnectButton {
                     id: connectButton
@@ -333,12 +332,48 @@ PageType {
 
                 onClicked: Qt.openUrlExternally(ServersUiController.serverAdEndpoint(ServersUiController.defaultServerId))
             }
+
+            // Sane4ek: server list with pings directly on the home page
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: 16
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
+
+                BodyTextType {
+                    Layout.fillWidth: true
+
+                    text: qsTr("Servers")
+                    color: AmneziaStyle.color.textTertiary
+                }
+
+                ChipType {
+                    enabled: !Sane4ekController.pingRunning
+                    text: Sane4ekController.pingRunning ? qsTr("Checking...") : "Test ping"
+
+                    onClicked: Sane4ekController.pingAll()
+                }
+            }
+
+            ServersListView {
+                id: homeServersList
+                objectName: "homeServersList"
+
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.topMargin: 4
+
+                clip: true
+            }
         }
     }
 
     Item {
         id: collapsedBar
         objectName: "collapsedBar"
+
+        visible: false // Sane4ek: replaced by the server list on the page
+        enabled: false
 
         anchors.left: parent.left
         anchors.right: parent.right

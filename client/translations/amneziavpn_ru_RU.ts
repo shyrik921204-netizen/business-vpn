@@ -7393,6 +7393,10 @@ FileZilla или другие SFTP-клиенты, а также смонтир�
         <source>%1 ms</source>
         <translation>%1 мс</translation>
     </message>
+    <message>
+        <source>Switching to %1</source>
+        <translation>Переключение на %1</translation>
+    </message>
 </context>
 <context>
     <name>ServersUiController</name>
