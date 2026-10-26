@@ -331,6 +331,7 @@ def sync_loop():
 class Handler(BaseHTTPRequestHandler):
     server_version = "Sane4ek/1"
     sys_version = ""
+    timeout = 20  # an idle or half-open client must not hold its thread forever
 
     def log_message(self, fmt, *args):
         pass
@@ -382,15 +383,38 @@ class Handler(BaseHTTPRequestHandler):
         return self.reply(404, {"error": "not found"})
 
 
+class Server(ThreadingHTTPServer):
+    """TLS handshake runs in the per-connection thread with a timeout.
+
+    Wrapping the listening socket would do the handshake inside accept() on the main
+    thread, so a single port scanner that connects and stays silent froze the agent.
+    """
+    daemon_threads = True
+    request_queue_size = 64
+
+    def __init__(self, address, handler, ctx):
+        super().__init__(address, handler)
+        self.ctx = ctx
+
+    def finish_request(self, request, client_address):
+        request.settimeout(20)
+        if self.ctx is not None:
+            request = self.ctx.wrap_socket(request, server_side=True)
+        self.RequestHandlerClass(request, client_address, self)
+
+    def handle_error(self, request, client_address):
+        pass  # handshake failures from scanners are normal noise
+
+
 def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     threading.Thread(target=sync_loop, daemon=True).start()
-    httpd = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
+    ctx = None
     if USE_TLS:
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ctx.minimum_version = ssl.TLSVersion.TLSv1_2
         ctx.load_cert_chain(data_path("cert.pem"), data_path("key.pem"))
-        httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
+    httpd = Server(("0.0.0.0", PORT), Handler, ctx)
     log("listening on", PORT)
     httpd.serve_forever()
 
