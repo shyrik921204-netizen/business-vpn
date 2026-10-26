@@ -93,11 +93,25 @@ jobs:
         tail -40 build.log
 
     - name: 'Upload installer'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
-        name: Sane4ek-Windows
         path: deploy/build/Sane4ek_*_windows_x64.msi
+        archive: false
         retention-days: 30
+
+    # Test build as a direct download (no zip): pre-release "windows-test", replaced by every
+    # build of main. Pre-releases are never offered to the app as an update.
+    - name: 'Publish test installer'
+      if: github.ref == 'refs/heads/main'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      shell: bash
+      run: |
+        gh release delete windows-test --repo "${{ github.repository }}" --cleanup-tag -y 2>/dev/null || true
+        gh release create windows-test deploy/build/Sane4ek_*_windows_x64.msi \
+          --repo "${{ github.repository }}" --target "${{ github.sha }}" --prerelease \
+          --title "Sane4ek для Windows — тестовая сборка ${{ github.run_number }}" \
+          --notes "Тестовая сборка для проверки, коммит ${{ github.sha }}"
 
     # On a publish (push to "release") the installer is attached to the release made by the
     # Android workflow for the same commit, so all files of a version are in one place.
