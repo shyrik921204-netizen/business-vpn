@@ -858,7 +858,9 @@ void Sane4ekController::registerOnServers(const QJsonObject &manifest)
             } else if (status == 403 && error == "device limit") {
                 state->failed.append(tr("%1 (device limit of the invite reached)").arg(name));
             } else if (status == 403) {
-                state->revoked.insert(key);
+                // The list itself was accepted, so the invite is valid: this server has not received
+                // the latest invites yet (its Upload failed). Keep its old key, if any.
+                state->failed.append(tr("%1 (the server does not know this invite yet, the administrator should press Upload)").arg(name));
             } else if (status == -1) {
                 state->failed.append(tr("%1 (server certificate changed, the administrator should press Upload)").arg(name));
             } else if (status == 0) {

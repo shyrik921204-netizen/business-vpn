@@ -7819,6 +7819,10 @@ Remove the server from the app to continue.</source>
 <context>
     <name>Sane4ekController</name>
     <message>
+        <source>%1 (the server does not know this invite yet, the administrator should press Upload)</source>
+        <translation>%1 (сервер ещё не знает это приглашение, администратору нужно нажать «Загрузить»)</translation>
+    </message>
+    <message>
         <source>%1 (device limit of the invite reached)</source>
         <translation>%1 (достигнут лимит устройств приглашения)</translation>
     </message>
