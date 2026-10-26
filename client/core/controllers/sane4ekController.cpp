@@ -200,6 +200,7 @@ namespace
     // (an accepted or refused connection both mean the host is alive).
     int measurePing(const QString &host)
     {
+#if !defined(Q_OS_WIN) // Windows: ping has other options and localized output, TCP below is enough
         QProcess p;
         const QString bin = QFile::exists("/system/bin/ping") ? QStringLiteral("/system/bin/ping") : QStringLiteral("ping");
         p.start(bin, { "-c", "5", "-i", "0.2", "-W", "2", host }); // average of 5 replies
@@ -218,6 +219,7 @@ namespace
             p.kill();
             p.waitForFinished(1000);
         }
+#endif
 
         for (int port : { 47443, 22, 443 }) {
             qint64 total = 0;

@@ -1,0 +1,119 @@
+name: 'Sane4ek — Windows'
+
+on:
+  push:
+    branches: [ '**' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  QT_MIRROR: https://mirrors.ocf.berkeley.edu/qt/
+  QT_VERSION: '6.10.3'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 300
+
+    steps:
+    - name: 'Get sources'
+      uses: actions/checkout@v4
+      with:
+        submodules: 'true'
+
+    - name: 'Install Qt'
+      uses: jurplel/install-qt-action@v4.3.1
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2022_64'
+        modules: 'qtremoteobjects qt5compat qtshadertools qthttpserver qtwebsockets qtimageformats'
+        dir: ${{ runner.temp }}
+        setup-python: 'true'
+        set-env: 'true'
+        py7zrversion: '==0.22.*'
+        extra: '--base ${{ env.QT_MIRROR }}'
+
+    - name: 'Setup MSVC'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: 'x64'
+
+    - name: 'Setup .NET SDK'
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: 'Install WiX Toolset'
+      shell: powershell
+      run: |
+        dotnet tool install --global wix --version 4.0.6
+        wix extension add -g WixToolset.UI.wixext/4.0.6
+        wix extension add -g WixToolset.Util.wixext/4.0.6
+        $wixBinDir = Join-Path $env:USERPROFILE ".dotnet\tools"
+        echo "WIX_BIN_DIR=$wixBinDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: 'Setup python'
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.12'
+
+    - name: 'Install conan'
+      run: pip install "conan==2.28.0"
+
+    # Same built-in invite as the Android build (optional secret SANE4EK_DEFAULT_INVITE)
+    - name: 'Embed default invite'
+      env:
+        INVITE: ${{ secrets.SANE4EK_DEFAULT_INVITE }}
+      shell: bash
+      run: printf '%s' "$INVITE" > client/server_scripts/sane4ek/default_invite.txt
+
+    - name: 'Build installer'
+      shell: cmd
+      env:
+        QT_INSTALL_DIR: ${{ runner.temp }}
+        SANE4EK_BUILD_NUMBER: ${{ github.run_number }}
+      run: |
+        set WIX_ROOT_PATH="%USERPROFILE%\.dotnet\tools"
+        deploy\build.bat --installer wix > build.log 2>&1
+        set RC=%ERRORLEVEL%
+        type build.log
+        exit /b %RC%
+
+    - name: 'Show build errors'
+      if: failure()
+      shell: bash
+      run: |
+        grep -E " error |error C|error LNK|CMake Error|: error|FAILED" -A3 build.log | grep -v "^--$" | head -60 | while IFS= read -r line; do
+          echo "::error::${line:0:900}"
+        done
+        tail -40 build.log
+
+    - name: 'Upload installer'
+      uses: actions/upload-artifact@v4
+      with:
+        name: Sane4ek-Windows
+        path: deploy/build/Sane4ek_*_windows_x64.msi
+        retention-days: 30
+
+    # On a publish (push to "release") the installer is attached to the release made by the
+    # Android workflow for the same commit, so all files of a version are in one place.
+    - name: 'Attach to release'
+      if: github.ref == 'refs/heads/release'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      shell: bash
+      run: |
+        for i in $(seq 1 120); do
+          TAG=$(gh release list --repo "${{ github.repository }}" --limit 20 --json tagName,targetCommitish \
+                --jq '.[] | select(.targetCommitish == "${{ github.sha }}") | .tagName' | head -1)
+          if [[ -n "$TAG" ]]; then
+            gh release upload "$TAG" deploy/build/Sane4ek_*_windows_x64.msi --repo "${{ github.repository }}" --clobber
+            exit 0
+          fi
+          sleep 60
+        done
+        echo "::warning::No release for this commit yet - the installer is only in the build artifacts"

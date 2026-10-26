@@ -148,6 +148,12 @@ void UpdateController::checkForUpdates()
     return;
 #endif
 
+#if !defined(Q_OS_ANDROID)
+    // Sane4ek: published releases carry Android APKs only, desktop builds are installed manually
+    emit updateNotFound();
+    return;
+#endif
+
     if (m_updateCheckRunning) {
         return;
     }

@@ -23,7 +23,7 @@ SystemTrayNotificationHandler::SystemTrayNotificationHandler(QObject* parent) :
     , m_systemTrayIcon(parent)
 #endif
 {
-    m_trayActionShow =  m_menu.addAction(QIcon(":/images/tray/application.png"), tr("Show") + " " + APPLICATION_NAME, this, [this](){
+    m_trayActionShow =  m_menu.addAction(QIcon(":/images/tray/application.png"), tr("Show") + " Sane4ek", this, [this](){
         emit raiseRequested();
     });
     m_menu.addSeparator();
@@ -35,10 +35,11 @@ SystemTrayNotificationHandler::SystemTrayNotificationHandler(QObject* parent) :
     m_trayActionVisitWebSite = m_menu.addAction(QIcon(":/images/tray/link.png"), tr("Visit Website"), [&](){
         QDesktopServices::openUrl(QUrl(websiteUrl));
     });
+    m_trayActionVisitWebSite->setVisible(false); // Sane4ek: no Amnezia website
 
     // Quit action: disconnect VPN first on macOS NE, else quit directly
     m_trayActionQuit = m_menu.addAction(QIcon(":/images/tray/cancel.png"),
-                                       tr("Quit") + " " + APPLICATION_NAME,
+                                       tr("Quit") + " Sane4ek",
                                        this,
                                        [&](){ qApp->quit(); });
 
@@ -72,11 +73,11 @@ void SystemTrayNotificationHandler::setConnectionState(Vpn::ConnectionState stat
 
 void SystemTrayNotificationHandler::onTranslationsUpdated()
 {
-    m_trayActionShow->setText(tr("Show") + " " + APPLICATION_NAME);
+    m_trayActionShow->setText(tr("Show") + " Sane4ek");
     m_trayActionConnect->setText(tr("Connect"));
     m_trayActionDisconnect->setText(tr("Disconnect"));
     m_trayActionVisitWebSite->setText(tr("Visit Website"));
-    m_trayActionQuit->setText(tr("Quit")+ " " + APPLICATION_NAME);
+    m_trayActionQuit->setText(tr("Quit") + " Sane4ek");
 }
 
 void SystemTrayNotificationHandler::updateWebsiteUrl(const QString &newWebsiteUrl) {
