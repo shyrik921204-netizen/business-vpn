@@ -41,6 +41,7 @@ public:
     UpdateState::State getUpdateState() const;
     bool isStoreUpdate() const;
     bool isUpdateCheckRunning() const;
+    int downloadProgress() const { return m_downloadProgress; }
 
 public slots:
     void checkForUpdates();
@@ -53,6 +54,7 @@ signals:
     void updateCheckFailed();
     void updateStateChanged();
     void updateCheckRunningChanged();
+    void downloadProgressChanged();
 
 private:
     void setUpdateState(UpdateState::State state);
@@ -75,6 +77,11 @@ private:
 
     UpdateState::State m_updateState = UpdateState::State::Idle;
     bool m_updateCheckRunning = false;
+    int m_downloadProgress = 0;
+#if defined(Q_OS_ANDROID)
+    void downloadAndroidApk();
+    QString m_apkPath;
+#endif
 
 #if defined(Q_OS_WINDOWS)
     int runWindowsInstaller(const QString &installerPath);

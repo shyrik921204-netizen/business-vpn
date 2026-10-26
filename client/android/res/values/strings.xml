@@ -25,4 +25,9 @@
     <string name="openNotificationSettings">Open notification settings</string>
 
     <string name="tvNoFileBrowser">Please install a file management utility to browse files</string>
+    <string name="sane4ekUpdatesChannel">Updates</string>
+    <string name="sane4ekUpdatedTitle">Sane4ek updated</string>
+    <string name="sane4ekUpdatedText">Tap to open the app</string>
+    <string name="sane4ekUpdateFailed">Update failed</string>
+    <string name="sane4ekAllowInstall">Allow Sane4ek to install updates, then return to the app</string>
 </resources>

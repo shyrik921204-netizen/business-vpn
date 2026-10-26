@@ -25,4 +25,9 @@
     <string name="openNotificationSettings">Открыть настройки уведомлений</string>
 
     <string name="tvNoFileBrowser">Пожалуйста, установите приложение для просмотра файлов</string>
+    <string name="sane4ekUpdatesChannel">Обновления</string>
+    <string name="sane4ekUpdatedTitle">Sane4ek обновлён</string>
+    <string name="sane4ekUpdatedText">Нажмите, чтобы открыть приложение</string>
+    <string name="sane4ekUpdateFailed">Не удалось установить обновление</string>
+    <string name="sane4ekAllowInstall">Разрешите Sane4ek устанавливать обновления и вернитесь в приложение</string>
 </resources>

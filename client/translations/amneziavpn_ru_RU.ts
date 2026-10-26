@@ -6390,6 +6390,10 @@ Create one from the current settings.</source>
 <context>
     <name>PageUpdate</name>
     <message>
+        <source>Downloading update... %1%</source>
+        <translation>Загрузка обновления... %1%</translation>
+    </message>
+    <message>
         <location filename="../ui/qml/Pages2/PageUpdate.qml" line="24"/>
         <source>Done. Install the update</source>
         <translation>Готово. Установите обновление</translation>

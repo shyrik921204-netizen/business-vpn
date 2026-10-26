@@ -155,6 +155,11 @@ void AndroidController::resetLastServer(int serverIndex)
     callActivityMethod("resetLastServer", "(I)V", serverIndex);
 }
 
+void AndroidController::installApk(const QString &path)
+{
+    callActivityMethod("installApk", "(Ljava/lang/String;)V", QJniObject::fromString(path).object<jstring>());
+}
+
 void AndroidController::saveFile(const QString &fileName, const QString &data)
 {
     callActivityMethod("saveFile", "(Ljava/lang/String;Ljava/lang/String;)V",

@@ -34,6 +34,7 @@ public:
     void stop();
     void resetLastServer(int serverIndex);
     void saveFile(const QString &fileName, const QString &data);
+    void installApk(const QString &path);
     bool saveFile(const QString &fileName, const QByteArray &data, const QString &mime, bool *cancelled = nullptr);
     void shareFile(const QString &path, const QString &mime);
     QString openFile(const QString &filter);
