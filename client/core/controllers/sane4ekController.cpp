@@ -4,6 +4,7 @@
 #include <QDateTime>
 #include <QFile>
 #include <QFutureWatcher>
+#include <QGuiApplication>
 #include <QJsonDocument>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -275,10 +276,26 @@ Sane4ekController::Sane4ekController(SecureServersRepository *serversRepository,
         QTimer::singleShot(1500, this, &Sane4ekController::pingAll);
     });
 
-    // A user with the built-in invite gets the servers on the first start without pressing anything
+    // Users get server changes without pressing anything: on start (with messages only when the
+    // list is still empty), every 3 hours while the app runs and whenever it is opened again
     QTimer::singleShot(2500, this, [this]() {
-        if (!isAdmin() && m_serversRepository->serversCount() == 0 && hasInvite()) {
+        if (isAdmin() || !hasInvite()) {
+            return;
+        }
+        if (m_serversRepository->serversCount() == 0) {
             refresh();
+        } else {
+            refreshSilently();
+        }
+    });
+    auto *autoRefresh = new QTimer(this);
+    autoRefresh->setInterval(3 * 60 * 60 * 1000);
+    connect(autoRefresh, &QTimer::timeout, this, &Sane4ekController::refreshSilently);
+    autoRefresh->start();
+    connect(qGuiApp, &QGuiApplication::applicationStateChanged, this, [this](Qt::ApplicationState state) {
+        if (state == Qt::ApplicationActive && m_lastRefreshMs > 0
+            && QDateTime::currentMSecsSinceEpoch() - m_lastRefreshMs > 10 * 60 * 1000) {
+            refreshSilently();
         }
     });
 }
@@ -747,20 +764,43 @@ void Sane4ekController::postJson(const Endpoint &endpoint, const QString &path, 
     });
 }
 
+void Sane4ekController::refreshSilently()
+{
+    if (m_busy || isAdmin() || !hasInvite()) {
+        return;
+    }
+    m_silent = true;
+    refresh();
+}
+
+void Sane4ekController::reportRefresh(bool success, const QString &message)
+{
+    const bool silent = m_silent;
+    m_silent = false;
+    if (!silent) {
+        emit operationFinished(success, message);
+    } else {
+        qInfo() << "Sane4ek: background refresh:" << message;
+    }
+}
+
 void Sane4ekController::refresh()
 {
     if (m_busy) {
+        m_silent = false;
         return;
     }
+    m_lastRefreshMs = QDateTime::currentMSecsSinceEpoch();
     const QJsonObject invite = clientInvite();
     if (invite.value("t").toString().isEmpty()) {
+        m_silent = false;
         emit operationFinished(false, isAdmin() ? tr("You are the administrator: press Upload to publish your servers")
                                                 : tr("Paste the invite from your administrator first"));
         return;
     }
     const QList<Endpoint> endpoints = knownEndpoints();
     if (endpoints.isEmpty()) {
-        emit operationFinished(false, tr("Invalid invite"));
+        reportRefresh(false, tr("Invalid invite"));
         return;
     }
     setBusy(true);
@@ -805,9 +845,9 @@ void Sane4ekController::refresh()
                          setBusy(false);
                          if (state->forbidden == total) {
                              removeAllManagedServers();
-                             emit operationFinished(false, tr("Your invite has been revoked"));
+                             reportRefresh(false, tr("Your invite has been revoked"));
                          } else {
-                             emit operationFinished(false, tr("No server is reachable. Check your internet connection"));
+                             reportRefresh(false, tr("No server is reachable. Check your internet connection"));
                          }
                          return;
                      }
@@ -933,10 +973,12 @@ void Sane4ekController::applyRegistrations(const QJsonObject &manifest, const QM
     }
 
     // Servers removed by the administrator or revoked for this invite
+    bool activeRemoved = false;
     for (const QString &key : managed.keys()) {
         if (!listed.contains(key) || revokedKeys.contains(key)) {
             const QString localId = managed.value(key).toString();
             if (m_serversRepository->indexOfServerId(localId) >= 0) {
+                activeRemoved = activeRemoved || localId == m_serversRepository->defaultServerId();
                 m_serversRepository->removeServer(localId);
             }
             managed.remove(key);
@@ -945,25 +987,35 @@ void Sane4ekController::applyRegistrations(const QJsonObject &manifest, const QM
     writeJson("client/managed", QJsonDocument(managed));
 
     setBusy(false);
-    emit refreshFinished(updated > 0);
+    if (!m_silent) {
+        emit refreshFinished(updated > 0);
+    }
     if (failed.isEmpty()) {
-        emit operationFinished(true, tr("Servers updated: %1").arg(updated));
+        reportRefresh(true, tr("Servers updated: %1").arg(updated));
     } else {
-        emit operationFinished(false, tr("Servers updated: %1. No key from: %2").arg(updated).arg(failed.join(", ")));
+        reportRefresh(false, tr("Servers updated: %1. No key from: %2").arg(updated).arg(failed.join(", ")));
+    }
+    if (activeRemoved) {
+        emit activeServerRemoved();
     }
 }
 
 void Sane4ekController::removeAllManagedServers()
 {
     const QJsonObject managed = readObject("client/managed");
+    bool activeRemoved = false;
     for (const QString &key : managed.keys()) {
         const QString localId = managed.value(key).toString();
         if (m_serversRepository->indexOfServerId(localId) >= 0) {
+            activeRemoved = activeRemoved || localId == m_serversRepository->defaultServerId();
             m_serversRepository->removeServer(localId);
         }
     }
     store().remove("client/managed");
     store().sync();
+    if (activeRemoved) {
+        emit activeServerRemoved();
+    }
 }
 
 // ------------------------------------------------------------------------------------------ ping
@@ -982,6 +1034,7 @@ void Sane4ekController::pingAll()
         }
     }
     if (hosts.isEmpty()) {
+        emit pingFinished();
         return;
     }
 
@@ -998,9 +1051,28 @@ void Sane4ekController::pingAll()
             watcher->deleteLater();
             m_pingPending = qMax(0, m_pingPending - 1);
             emit pingsChanged();
+            if (m_pingPending == 0) {
+                emit pingFinished();
+            }
         });
         watcher->setFuture(QtConcurrent::run([host]() { return measurePing(host); }));
     }
+}
+
+QString Sane4ekController::bestPingServerId() const
+{
+    QString bestId;
+    int bestPing = 0;
+    for (const QString &id : m_serversRepository->orderedServerIds()) {
+        const auto json = m_serversRepository->serverJsonById(id);
+        const QString host = json.has_value() ? json->value(configKey::hostName).toString() : QString();
+        const int ping = m_pings.value(host, -1).toInt();
+        if (ping > 0 && (bestId.isEmpty() || ping < bestPing)) {
+            bestId = id;
+            bestPing = ping;
+        }
+    }
+    return bestId;
 }
 
 QString Sane4ekController::existingServerIdForHost(const QString &host) const

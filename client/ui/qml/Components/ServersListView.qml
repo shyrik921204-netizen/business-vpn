@@ -48,20 +48,10 @@ ListViewType {
     Connections {
         target: ConnectionController
         function onConnectionStateChanged() {
-            // pings measured while the tunnel was reconnecting are all "no answer": measure again
-            if (ConnectionController.isConnected && !root.switchPending) {
-                pingAfterConnect.restart()
-            }
             if (root.switchPending && !ConnectionController.isConnected && !ConnectionController.isConnectionInProgress) {
                 root.finishSwitch()
             }
         }
-    }
-
-    Timer {
-        id: pingAfterConnect
-        interval: 2000
-        onTriggered: Sane4ekController.pingAll()
     }
 
     Timer {

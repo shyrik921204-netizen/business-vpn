@@ -254,6 +254,74 @@ Window  {
         id: subscriptionExpiredDrawer
     }
 
+    // Sane4ek: the server in use disappeared after a background refresh (removed by the administrator
+    // or the invite expired): disconnect, measure pings over the normal network (VPN is off by then)
+    // and connect to the server with the best ping
+    QtObject {
+        id: sane4ekAutoSwitch
+        property bool waitDisconnect: false
+        property bool waitPing: false
+
+        function start() {
+            if (ConnectionController.isConnected || ConnectionController.isConnectionInProgress) {
+                waitDisconnect = true
+                ConnectionController.closeConnection()
+                sane4ekAutoSwitchFallback.restart()
+            }
+        }
+
+        function measure() {
+            if (!waitDisconnect) {
+                return
+            }
+            waitDisconnect = false
+            sane4ekAutoSwitchFallback.stop()
+            waitPing = true
+            Sane4ekController.pingAll()
+        }
+
+        function connectBest() {
+            if (!waitPing) {
+                return
+            }
+            waitPing = false
+            var serverId = Sane4ekController.bestPingServerId()
+            if (serverId === "") {
+                return
+            }
+            ServersUiController.setDefaultServerAtIndex(ServersUiController.getServerIndexById(serverId))
+            ConnectionController.openConnection()
+        }
+    }
+
+    Timer {
+        id: sane4ekAutoSwitchFallback
+        interval: 8000
+        onTriggered: sane4ekAutoSwitch.measure()
+    }
+
+    Connections {
+        target: ConnectionController
+        function onConnectionStateChanged() {
+            if (sane4ekAutoSwitch.waitDisconnect && !ConnectionController.isConnected
+                    && !ConnectionController.isConnectionInProgress) {
+                sane4ekAutoSwitch.measure()
+            }
+        }
+    }
+
+    Connections {
+        target: Sane4ekController
+
+        function onActiveServerRemoved() {
+            sane4ekAutoSwitch.start()
+        }
+
+        function onPingFinished() {
+            sane4ekAutoSwitch.connectBest()
+        }
+    }
+
     Connections {
         target: Sane4ekController
 
