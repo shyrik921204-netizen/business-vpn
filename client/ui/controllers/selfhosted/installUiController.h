@@ -72,6 +72,8 @@ public slots:
 
     void removeServer(const QString &serverId);
     void rebootServer(const QString &serverId);
+    // Sane4ek: replace an outdated AmneziaWG (1.x/2.0) container with AmneziaWG 3.1 on the same port
+    void upgradeAwgContainer(const QString &serverId);
     void removeAllContainers(const QString &serverId);
     void removeContainer(const QString &serverId, int containerIndex);
     void setContainerEnabled(const QString &serverId, int containerIndex, bool enabled);
@@ -113,6 +115,7 @@ signals:
     void scanServerFinished(bool isInstalledContainerFound);
 
     void rebootServerFinished(const QString &finishedMessage);
+    void upgradeAwgFinished(const QString &finishedMessage);
     void removeServerFinished(const QString &finishedMessage);
     void removeAllContainersFinished(const QString &finishedMessage);
     void removeContainerFinished(const QString &finishedMessage);

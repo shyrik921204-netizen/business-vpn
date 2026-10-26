@@ -145,5 +145,6 @@ ListViewType {
         }
 
         onSettingsRequested: root.openServerSettings(serverId)
+        onWarningClicked: upgradeAwgContainer(serverId, name)
     }
 }

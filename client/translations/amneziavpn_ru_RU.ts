@@ -592,6 +592,14 @@ Can&apos;t be disabled for current server</source>
 <context>
     <name>InstallUiController</name>
     <message>
+        <source>AmneziaWG on server &#x27;%1&#x27; is already up to date</source>
+        <translation>AmneziaWG на сервере «%1» уже обновлён</translation>
+    </message>
+    <message>
+        <source>AmneziaWG 3.1 is installed on server &#x27;%1&#x27;. Users should press Refresh to get new keys</source>
+        <translation>AmneziaWG 3.1 установлен на сервере «%1». Пользователям нужно нажать «Обновить», чтобы получить новые ключи</translation>
+    </message>
+    <message>
         <location filename="../ui/controllers/selfhosted/installUiController.cpp" line="133"/>
         <location filename="../ui/controllers/selfhosted/installUiController.cpp" line="175"/>
         <source>%1 installed successfully. </source>
@@ -5067,6 +5075,14 @@ Create one from the current settings.</source>
 <context>
     <name>PageSettingsServerData</name>
     <message>
+        <source>Update AmneziaWG to 3.1</source>
+        <translation>Обновить AmneziaWG до 3.1</translation>
+    </message>
+    <message>
+        <source>Replace the outdated AmneziaWG container on this server</source>
+        <translation>Заменить устаревший контейнер AmneziaWG на этом сервере</translation>
+    </message>
+    <message>
         <location filename="../ui/qml/Pages2/PageSettingsServerData.qml" line="28"/>
         <source>All installed containers have been added to the application</source>
         <translation>Все установленные протоколы и сервисы были добавлены в приложение</translation>
@@ -7742,6 +7758,22 @@ FileZilla или другие SFTP-клиенты, а также смонтир�
 </context>
 <context>
     <name>main2</name>
+    <message>
+        <source>Update AmneziaWG on &quot;%1&quot; to 3.1?</source>
+        <translation>Обновить AmneziaWG на «%1» до 3.1?</translation>
+    </message>
+    <message>
+        <source>The old container is removed and AmneziaWG 3.1 is installed on the same port. It takes 2-5 minutes. Old keys of this server stop working: Sane4ek users get new ones by pressing Refresh, keys shared in other ways have to be shared again.</source>
+        <translation>Старый контейнер будет удалён, и на том же порту установится AmneziaWG 3.1. Это займёт 2–5 минут. Старые ключи этого сервера перестанут работать: пользователи Sane4ek получат новые по кнопке «Обновить», ключи, отправленные другим способом, нужно будет отправить заново.</translation>
+    </message>
+    <message>
+        <source>Update</source>
+        <translation>Обновить</translation>
+    </message>
+    <message>
+        <source>Disconnect the VPN before updating the server</source>
+        <translation>Отключите VPN перед обновлением сервера</translation>
+    </message>
     <message>
         <location filename="../ui/qml/main2.qml" line="226"/>
         <source>Private key passphrase</source>

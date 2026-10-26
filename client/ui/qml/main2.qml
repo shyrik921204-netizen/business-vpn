@@ -353,6 +353,29 @@ Window  {
         showQuestionDrawer(headerText, descriptionText, yesButtonText, noButtonText, yesButtonFunction, noButtonFunction)
     }
 
+    // Sane4ek: replace the outdated AmneziaWG container of one server with AmneziaWG 3.1
+    function upgradeAwgContainer(serverId, serverName) {
+        var headerText = qsTr("Update AmneziaWG on \"%1\" to 3.1?").arg(serverName)
+        var descriptionText = qsTr("The old container is removed and AmneziaWG 3.1 is installed on the same port. It takes 2-5 minutes. Old keys of this server stop working: Sane4ek users get new ones by pressing Refresh, keys shared in other ways have to be shared again.")
+        showQuestionDrawer(headerText, descriptionText, qsTr("Update"), qsTr("Cancel"), function() {
+            if (ConnectionController.isConnected || ConnectionController.isConnectionInProgress) {
+                PageController.showErrorMessage(qsTr("Disconnect the VPN before updating the server"))
+                return
+            }
+            PageController.showBusyIndicator(true)
+            InstallController.upgradeAwgContainer(serverId)
+            PageController.showBusyIndicator(false)
+        }, function() {})
+    }
+
+    Connections {
+        target: InstallController
+
+        function onUpgradeAwgFinished(finishedMessage) {
+            PageController.showNotificationMessage(finishedMessage)
+        }
+    }
+
     function showQuestionDrawer(headerText, descriptionText, yesButtonText, noButtonText, yesButtonFunction, noButtonFunction) {
         questionDrawer.headerText = headerText
         questionDrawer.descriptionText = descriptionText

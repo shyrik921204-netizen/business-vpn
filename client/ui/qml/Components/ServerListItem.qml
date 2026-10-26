@@ -13,6 +13,7 @@ RadioItemType {
     property bool showWarning: false
 
     signal settingsRequested()
+    signal warningClicked()
 
     Item {
         Layout.preferredWidth: 48
@@ -28,6 +29,12 @@ RadioItemType {
             source: "qrc:/images/controls/alert-circle.svg"
             sourceSize: Qt.size(24, 24)
             color: AmneziaStyle.color.statusWarning
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.warningClicked()
         }
     }
 

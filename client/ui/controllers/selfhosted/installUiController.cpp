@@ -501,6 +501,56 @@ void InstallUiController::rebootServer(const QString &serverId)
     }
 }
 
+void InstallUiController::upgradeAwgContainer(const QString &serverId)
+{
+    const QString serverName = m_serversController->notificationDisplayName(serverId);
+    const QMap<DockerContainer, ContainerConfig> containers = m_serversController->getServerContainersMap(serverId);
+
+    DockerContainer oldContainer = DockerContainer::None;
+    int port = 0;
+    for (DockerContainer container : { DockerContainer::Awg2, DockerContainer::Awg }) {
+        if (!containers.contains(container)) {
+            continue;
+        }
+        if (const auto *awgConfig = containers.value(container).getAwgProtocolConfig()) {
+            if (awgConfig->serverConfig.protocolVersion != protocols::awg::awgV3) {
+                oldContainer = container;
+                port = awgConfig->serverConfig.port.toInt();
+                break;
+            }
+        }
+    }
+
+    if (oldContainer == DockerContainer::None) {
+        emit upgradeAwgFinished(tr("AmneziaWG on server '%1' is already up to date").arg(serverName));
+        return;
+    }
+    if (port <= 0) {
+        port = ProtocolUtils::getPortForInstall(Proto::Awg);
+    }
+
+    ErrorCode errorCode = m_installController->removeContainer(serverId, oldContainer);
+    if (errorCode != ErrorCode::NoError) {
+        emit installationErrorOccurred(errorCode);
+        return;
+    }
+
+    bool wasContainerInstalled = false;
+    errorCode = m_installController->installContainer(serverId, DockerContainer::Awg2, port, TransportProto::Udp,
+                                                      wasContainerInstalled);
+    if (errorCode != ErrorCode::NoError) {
+        emit installationErrorOccurred(errorCode);
+        return;
+    }
+
+    if (!m_connectionController->isConnected()) {
+        m_serversController->setDefaultContainer(serverId, DockerContainer::Awg2);
+    }
+
+    emit upgradeAwgFinished(tr("AmneziaWG 3.1 is installed on server '%1'. Users should press Refresh to get new keys")
+                                    .arg(serverName));
+}
+
 void InstallUiController::removeServer(const QString &serverId)
 {
     if (serverId.isEmpty()) {
