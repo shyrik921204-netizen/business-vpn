@@ -7815,6 +7815,26 @@ Remove the server from the app to continue.</source>
 <context>
     <name>Sane4ekController</name>
     <message>
+        <source>%1 (device limit of the invite reached)</source>
+        <translation>%1 (достигнут лимит устройств приглашения)</translation>
+    </message>
+    <message>
+        <source>%1 (server certificate changed, the administrator should press Upload)</source>
+        <translation>%1 (сменился сертификат сервера, администратору нужно нажать «Загрузить»)</translation>
+    </message>
+    <message>
+        <source>%1 (no answer)</source>
+        <translation>%1 (нет ответа)</translation>
+    </message>
+    <message>
+        <source>%1 (AmneziaWG is not running on the server)</source>
+        <translation>%1 (на сервере не запущен AmneziaWG)</translation>
+    </message>
+    <message>
+        <source>Servers updated: %1. No key from: %2</source>
+        <translation>Серверы обновлены: %1. Не получен ключ: %2</translation>
+    </message>
+    <message>
         <source>No servers with AmneziaWG and SSH access</source>
         <translation>Нет серверов с AmneziaWG и доступом по SSH</translation>
     </message>

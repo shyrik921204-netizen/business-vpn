@@ -104,7 +104,7 @@ private:
                   const std::function<void(int status, const QJsonObject &reply)> &callback);
     void registerOnServers(const QJsonObject &manifest);
     void applyRegistrations(const QJsonObject &manifest, const QMap<QString, QString> &configs,
-                            const QSet<QString> &revokedKeys, int failed);
+                            const QSet<QString> &revokedKeys, const QStringList &failed);
     void removeAllManagedServers();
 
     QByteArray adminSigningSeed();

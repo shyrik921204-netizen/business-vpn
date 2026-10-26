@@ -726,12 +726,17 @@ void Sane4ekController::postJson(const Endpoint &endpoint, const QString &path, 
             *pinned = true;
         } else {
             qWarning() << "Sane4ek: certificate mismatch for" << reply->url().host();
+            reply->setProperty("sane4ekCertMismatch", true);
             reply->abort();
         }
     });
     connect(reply, &QNetworkReply::finished, this, [reply, pinned, callback]() {
         reply->deleteLater();
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (!*pinned && reply->property("sane4ekCertMismatch").toBool()) {
+            callback(-1, QJsonObject());
+            return;
+        }
         if (!*pinned || status == 0) {
             callback(0, QJsonObject());
             return;
@@ -822,14 +827,14 @@ void Sane4ekController::registerOnServers(const QJsonObject &manifest)
     store().setValue("client/version", manifest.value("version").toInteger());
 
     if (servers.isEmpty()) {
-        applyRegistrations(manifest, {}, {}, 0);
+        applyRegistrations(manifest, {}, {}, {});
         return;
     }
 
     struct State
     {
         int pending = 0;
-        int failed = 0;
+        QStringList failed;
         QMap<QString, QString> configs;
         QSet<QString> revoked;
     };
@@ -844,15 +849,26 @@ void Sane4ekController::registerOnServers(const QJsonObject &manifest)
     for (const QJsonValue &v : servers) {
         const QJsonObject s = v.toObject();
         const QString key = s.value("id").toString();
-        postJson(endpointFromJson(s), "/v1/register", body, [this, state, key, manifest](int status, const QJsonObject &reply) {
+        const QString name = s.value("name").toString();
+        postJson(endpointFromJson(s), "/v1/register", body, [this, state, key, name, manifest](int status, const QJsonObject &reply) {
             const QString config = reply.value("config").toString();
+            const QString error = reply.value("error").toString();
             if (status == 200 && !config.isEmpty()) {
                 state->configs.insert(key, config);
+            } else if (status == 403 && error == "device limit") {
+                state->failed.append(tr("%1 (device limit of the invite reached)").arg(name));
             } else if (status == 403) {
                 state->revoked.insert(key);
+            } else if (status == -1) {
+                state->failed.append(tr("%1 (server certificate changed, the administrator should press Upload)").arg(name));
+            } else if (status == 0) {
+                state->failed.append(tr("%1 (no answer)").arg(name));
+            } else if (error == "no awg" || error == "awg not configured") {
+                state->failed.append(tr("%1 (AmneziaWG is not running on the server)").arg(name));
             } else {
-                state->failed++;
+                state->failed.append(QString("%1 (%2 %3)").arg(name).arg(status).arg(error));
             }
+            qWarning() << "Sane4ek: register on" << name << "status" << status << error;
             if (--state->pending == 0) {
                 applyRegistrations(manifest, state->configs, state->revoked, state->failed);
             }
@@ -861,7 +877,7 @@ void Sane4ekController::registerOnServers(const QJsonObject &manifest)
 }
 
 void Sane4ekController::applyRegistrations(const QJsonObject &manifest, const QMap<QString, QString> &configs,
-                                           const QSet<QString> &revokedKeys, int failed)
+                                           const QSet<QString> &revokedKeys, const QStringList &failed)
 {
     QJsonObject managed = readObject("client/managed");
     const QString privateKey = store().value("client/privKey").toString();
@@ -926,10 +942,10 @@ void Sane4ekController::applyRegistrations(const QJsonObject &manifest, const QM
 
     setBusy(false);
     emit refreshFinished(updated > 0);
-    if (failed == 0) {
+    if (failed.isEmpty()) {
         emit operationFinished(true, tr("Servers updated: %1").arg(updated));
     } else {
-        emit operationFinished(false, tr("Servers updated: %1, unavailable: %2").arg(updated).arg(failed));
+        emit operationFinished(false, tr("Servers updated: %1. No key from: %2").arg(updated).arg(failed.join(", ")));
     }
 }
 
