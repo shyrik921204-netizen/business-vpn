@@ -26,6 +26,40 @@ ListViewType {
         }
     }
 
+    // Sane4ek: choosing another server while connected switches the VPN to it:
+    // disconnect from the old one, then connect to the new one as soon as it is down
+    property bool switchPending: false
+
+    function switchConnection() {
+        root.switchPending = true
+        ConnectionController.closeConnection()
+        switchFallback.restart()
+    }
+
+    function finishSwitch() {
+        if (!root.switchPending) {
+            return
+        }
+        root.switchPending = false
+        switchFallback.stop()
+        ConnectionController.openConnection()
+    }
+
+    Connections {
+        target: ConnectionController
+        function onConnectionStateChanged() {
+            if (root.switchPending && !ConnectionController.isConnected && !ConnectionController.isConnectionInProgress) {
+                root.finishSwitch()
+            }
+        }
+    }
+
+    Timer {
+        id: switchFallback
+        interval: 8000
+        onTriggered: root.finishSwitch()
+    }
+
     ButtonGroup {
         id: serversRadioButtonGroup
         objectName: "serversRadioButtonGroup"
@@ -79,19 +113,23 @@ ListViewType {
         showSeparator: index < root.count - 1
 
         checked: index === root.selectedIndex
-        checkable: !ConnectionController.isConnected
+        checkable: true
 
         ButtonGroup.group: serversRadioButtonGroup
 
         onClicked: {
-            if (ConnectionController.isConnected) {
-                PageController.showNotificationMessage(qsTr("Unable change server while there is an active connection"))
+            if (index === root.selectedIndex) {
                 return
             }
+            const wasActive = ConnectionController.isConnected || ConnectionController.isConnectionInProgress
 
             root.selectedIndex = index
-
             ServersUiController.setDefaultServerAtIndex(index)
+
+            if (wasActive) {
+                PageController.showNotificationMessage(qsTr("Switching to %1").arg(name))
+                root.switchConnection()
+            }
         }
 
         onSettingsRequested: root.openServerSettings(serverId)
