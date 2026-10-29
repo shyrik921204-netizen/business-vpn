@@ -1,5 +1,6 @@
 #include "connectionController.h"
 
+#include <QJsonArray>
 #include <QJsonDocument>
 
 #include "core/configurators/configuratorBase.h"
@@ -215,6 +216,28 @@ ErrorCode ConnectionController::openConnection(const QString &serverId)
     if (errorCode != ErrorCode::NoError) {
         return errorCode;
     }
+
+#ifdef Q_OS_ANDROID
+    // Sane4ek failover: the VPN service gets the other servers of the same protocol, so that it can
+    // move to a working one by itself when this server stops answering (even with the app closed)
+    vpnConfiguration["sane4ek_serverId"] = serverId;
+    QJsonArray fallbacks;
+    for (const QString &id : m_serversRepository->orderedServerIds()) {
+        if (id == serverId) {
+            continue;
+        }
+        QJsonObject fallback;
+        DockerContainer fallbackContainer;
+        if (prepareConnection(id, fallback, fallbackContainer) != ErrorCode::NoError
+            || fallback.value(configKey::vpnProto) != vpnConfiguration.value(configKey::vpnProto)
+            || fallback.value(configKey::hostName) == vpnConfiguration.value(configKey::hostName)) {
+            continue;
+        }
+        fallback["sane4ek_serverId"] = id;
+        fallbacks.append(fallback);
+    }
+    vpnConfiguration["sane4ek_fallbacks"] = fallbacks;
+#endif
 
     const auto apiV2 = m_serversRepository->apiV2Config(serverId);
     if (apiV2.has_value() && !apiV2->sendPayload.isEmpty()) {

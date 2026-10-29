@@ -438,6 +438,13 @@ void CoreSignalHandlers::initAndroidConnectionHandler()
         m_coreController->m_connectionUiController->onConnectionStateChanged(state);
         m_coreController->m_connectionController->restoreConnection();
     });
+    // Sane4ek failover: the service switched to another server, show it as the selected one
+    connect(AndroidController::instance(), &AndroidController::serverInUse, this, [this](const QString &serverId) {
+        auto *repo = m_coreController->m_serversRepository;
+        if (!serverId.isEmpty() && repo->indexOfServerId(serverId) >= 0 && repo->defaultServerId() != serverId) {
+            repo->setDefaultServer(serverId);
+        }
+    }, Qt::QueuedConnection);
     connect(AndroidController::instance(), &AndroidController::importConfigFromOutside, this, [this](QString data) {
         emit m_coreController->m_pageController->goToPageHome();
         m_coreController->m_importController->extractConfigFromData(data);

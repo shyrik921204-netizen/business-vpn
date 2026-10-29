@@ -111,6 +111,9 @@ class AmneziaActivity : QtActivity() {
                 Log.d(TAG, "Handle event: $event")
                 when (event) {
                     ServiceEvent.STATUS_CHANGED -> {
+                        msg.data?.getString(MSG_SANE4EK_SERVER_ID)?.takeIf { it.isNotEmpty() }?.let {
+                            QtAndroidController.onServerInUse(it)
+                        }
                         msg.data?.getStatus()?.let { (state) ->
                             Log.d(TAG, "Handle protocol state: $state")
                             QtAndroidController.onVpnStateChanged(state.ordinal)
@@ -118,6 +121,9 @@ class AmneziaActivity : QtActivity() {
                     }
 
                     ServiceEvent.STATUS -> {
+                        msg.data?.getString(MSG_SANE4EK_SERVER_ID)?.takeIf { it.isNotEmpty() }?.let {
+                            QtAndroidController.onServerInUse(it)
+                        }
                         if (isWaitingStatus) {
                             isWaitingStatus = false
                             msg.data?.getStatus()?.let { QtAndroidController.onStatus(it) }

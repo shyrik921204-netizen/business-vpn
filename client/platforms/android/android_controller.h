@@ -76,6 +76,8 @@ signals:
     void status(ConnectionState state);
     void serviceDisconnected();
     void serviceError();
+    // Sane4ek: the VPN service moved to another server on its own (failover)
+    void serverInUse(const QString &serverId);
     void vpnPermissionRejected();
     void notificationStateChanged();
     void vpnStateChanged(ConnectionState state);
@@ -112,6 +114,7 @@ private:
     static void onStatus(JNIEnv *env, jobject thiz, jint stateCode);
     static void onServiceDisconnected(JNIEnv *env, jobject thiz);
     static void onServiceError(JNIEnv *env, jobject thiz);
+    static void onServerInUse(JNIEnv *env, jobject thiz, jstring serverId);
     static void onVpnPermissionRejected(JNIEnv *env, jobject thiz);
     static void onNotificationStateChanged(JNIEnv *env, jobject thiz);
     static void onVpnStateChanged(JNIEnv *env, jobject thiz, jint stateCode);
