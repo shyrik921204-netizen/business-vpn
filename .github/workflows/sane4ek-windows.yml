@@ -113,10 +113,10 @@ jobs:
           --title "Sane4ek для Windows — тестовая сборка ${{ github.run_number }}" \
           --notes "Тестовая сборка для проверки, коммит ${{ github.sha }}"
 
-    # On a publish (push to "release") the installer is attached to the release made by the
-    # Android workflow for the same commit, so all files of a version are in one place.
+    # On a publish (push to "release") whose release commit says [windows], the installer is
+    # attached to the release made by the Android workflow for the same commit.
     - name: 'Attach to release'
-      if: github.ref == 'refs/heads/release'
+      if: github.ref == 'refs/heads/release' && contains(github.event.head_commit.message, '[windows]')
       env:
         GH_TOKEN: ${{ github.token }}
       shell: bash

@@ -213,7 +213,7 @@ jobs:
         N=${{ github.run_number }}
         if [[ "${{ github.ref }}" == "refs/heads/release" ]]; then
           # release notes = message of the release commit (without the first line)
-          NOTES=$(git log -1 --format=%b | grep -v '^Co-Authored-By:' | grep -v '^Claude-Session:' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
+          NOTES=$(git log -1 --format=%b | grep -v '^Co-Authored-By:' | grep -v '^Claude-Session:' | grep -v '^\[windows\]' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
         elif [[ "${{ github.ref_type }}" == "tag" ]]; then
           # release notes = message of the annotated version tag
           git fetch --force origin "${{ github.ref }}:${{ github.ref }}" 2>/dev/null || true
