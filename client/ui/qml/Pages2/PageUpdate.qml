@@ -220,6 +220,7 @@ PageType {
             Layout.fillWidth: true
 
             loading: !UpdateController.isStoreUpdate && UpdateController.updateState === UpdateState.Downloading
+                     && UpdateController.downloadProgress === 0
             enabled: UpdateController.updateState !== UpdateState.Downloading
 
             leftImageSource: !UpdateController.isStoreUpdate && UpdateController.updateState === UpdateState.ReadyToInstall
@@ -230,7 +231,9 @@ PageType {
                     return qsTr("Update app")
                 }
                 switch (UpdateController.updateState) {
-                case UpdateState.Downloading: return qsTr("Downloading update...")
+                case UpdateState.Downloading: return UpdateController.downloadProgress > 0
+                                                     ? qsTr("Downloading update... %1%").arg(UpdateController.downloadProgress)
+                                                     : qsTr("Downloading update...")
                 case UpdateState.ReadyToInstall: return qsTr("Install update")
                 case UpdateState.DownloadError: return qsTr("Retry")
                 default: return qsTr("Update app")

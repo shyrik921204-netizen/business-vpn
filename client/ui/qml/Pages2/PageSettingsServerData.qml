@@ -87,12 +87,27 @@ PageType {
     }
 
     property list<QtObject> serverActions: [
+        upgradeAwg,
         check,
         reboot,
         remove,
         clear,
         reset,
     ]
+
+    QtObject {
+        id: upgradeAwg
+
+        property bool isVisible: root.isServerWithWriteAccess
+                                 && ServersUiController.serverHasOutdatedAwgContainer(ServersUiController.processedServerId)
+        readonly property string title: qsTr("Update AmneziaWG to 3.1")
+        readonly property string description: qsTr("Replace the outdated AmneziaWG container on this server")
+        readonly property bool isDestructive: false
+        readonly property var clickedHandler: function() {
+            upgradeAwgContainer(ServersUiController.processedServerId,
+                                ServersUiController.serverName(ServersUiController.processedServerId))
+        }
+    }
 
     QtObject {
         id: check

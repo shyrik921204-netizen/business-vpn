@@ -50,6 +50,8 @@ public:
 public slots:
     void upload();
     void refresh();
+    // Background refresh: no messages, servers just appear or disappear
+    void refreshSilently();
 
     bool acceptInvite(const QString &text);
 
@@ -60,6 +62,8 @@ public slots:
 
     // ping of every server in the list: ms, -1 = no answer, -2 = measuring
     void pingAll();
+    // id of the server with the lowest measured ping, empty if none answered
+    QString bestPingServerId() const;
 
 signals:
     void adminStateChanged();
@@ -69,6 +73,9 @@ signals:
     void operationFinished(bool success, const QString &message);
     void refreshFinished(bool success);
     void pingsChanged();
+    void pingFinished();
+    // the server selected for connection was removed by a refresh (admin removed it or the invite was revoked)
+    void activeServerRemoved();
 
 public:
     struct Endpoint
@@ -104,7 +111,7 @@ private:
                   const std::function<void(int status, const QJsonObject &reply)> &callback);
     void registerOnServers(const QJsonObject &manifest);
     void applyRegistrations(const QJsonObject &manifest, const QMap<QString, QString> &configs,
-                            const QSet<QString> &revokedKeys, int failed);
+                            const QSet<QString> &revokedKeys, const QStringList &failed);
     void removeAllManagedServers();
 
     QByteArray adminSigningSeed();
@@ -118,6 +125,9 @@ private:
     ImportController *m_importController;
     QNetworkAccessManager *m_network;
     bool m_busy = false;
+    bool m_silent = false;
+    qint64 m_lastRefreshMs = 0;
+    void reportRefresh(bool success, const QString &message);
     QVariantMap m_pings;
     int m_pingPending = 0;
     QString existingServerIdForHost(const QString &host) const;

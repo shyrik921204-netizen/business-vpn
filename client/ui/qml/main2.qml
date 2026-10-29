@@ -81,7 +81,7 @@ Window  {
         console.warn("Scene graph error:", error, message)
     }
 
-    title: "AmneziaVPN"
+    title: "Sane4ek"
 
     Loader {
         active: Qt.platform.os === "android"
@@ -254,6 +254,74 @@ Window  {
         id: subscriptionExpiredDrawer
     }
 
+    // Sane4ek: the server in use disappeared after a background refresh (removed by the administrator
+    // or the invite expired): disconnect, measure pings over the normal network (VPN is off by then)
+    // and connect to the server with the best ping
+    QtObject {
+        id: sane4ekAutoSwitch
+        property bool waitDisconnect: false
+        property bool waitPing: false
+
+        function start() {
+            if (ConnectionController.isConnected || ConnectionController.isConnectionInProgress) {
+                waitDisconnect = true
+                ConnectionController.closeConnection()
+                sane4ekAutoSwitchFallback.restart()
+            }
+        }
+
+        function measure() {
+            if (!waitDisconnect) {
+                return
+            }
+            waitDisconnect = false
+            sane4ekAutoSwitchFallback.stop()
+            waitPing = true
+            Sane4ekController.pingAll()
+        }
+
+        function connectBest() {
+            if (!waitPing) {
+                return
+            }
+            waitPing = false
+            var serverId = Sane4ekController.bestPingServerId()
+            if (serverId === "") {
+                return
+            }
+            ServersUiController.setDefaultServerAtIndex(ServersUiController.getServerIndexById(serverId))
+            ConnectionController.openConnection()
+        }
+    }
+
+    Timer {
+        id: sane4ekAutoSwitchFallback
+        interval: 8000
+        onTriggered: sane4ekAutoSwitch.measure()
+    }
+
+    Connections {
+        target: ConnectionController
+        function onConnectionStateChanged() {
+            if (sane4ekAutoSwitch.waitDisconnect && !ConnectionController.isConnected
+                    && !ConnectionController.isConnectionInProgress) {
+                sane4ekAutoSwitch.measure()
+            }
+        }
+    }
+
+    Connections {
+        target: Sane4ekController
+
+        function onActiveServerRemoved() {
+            sane4ekAutoSwitch.start()
+        }
+
+        function onPingFinished() {
+            sane4ekAutoSwitch.connectBest()
+        }
+    }
+
     Connections {
         target: Sane4ekController
 
@@ -351,6 +419,29 @@ Window  {
         }
 
         showQuestionDrawer(headerText, descriptionText, yesButtonText, noButtonText, yesButtonFunction, noButtonFunction)
+    }
+
+    // Sane4ek: replace the outdated AmneziaWG container of one server with AmneziaWG 3.1
+    function upgradeAwgContainer(serverId, serverName) {
+        var headerText = qsTr("Update AmneziaWG on \"%1\" to 3.1?").arg(serverName)
+        var descriptionText = qsTr("The old container is removed and AmneziaWG 3.1 is installed on the same port. It takes 2-5 minutes. Old keys of this server stop working: Sane4ek users get new ones by pressing Refresh, keys shared in other ways have to be shared again.")
+        showQuestionDrawer(headerText, descriptionText, qsTr("Update"), qsTr("Cancel"), function() {
+            if (ConnectionController.isConnected || ConnectionController.isConnectionInProgress) {
+                PageController.showErrorMessage(qsTr("Disconnect the VPN before updating the server"))
+                return
+            }
+            PageController.showBusyIndicator(true)
+            InstallController.upgradeAwgContainer(serverId)
+            PageController.showBusyIndicator(false)
+        }, function() {})
+    }
+
+    Connections {
+        target: InstallController
+
+        function onUpgradeAwgFinished(finishedMessage) {
+            PageController.showNotificationMessage(finishedMessage)
+        }
     }
 
     function showQuestionDrawer(headerText, descriptionText, yesButtonText, noButtonText, yesButtonFunction, noButtonFunction) {

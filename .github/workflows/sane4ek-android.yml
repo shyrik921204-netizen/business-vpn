@@ -185,7 +185,7 @@ jobs:
       if: failure()
       shell: bash
       run: |
-        grep -E "error:|^e: |What went wrong|FAILED|Error:|Exception" -A4 build.log | grep -v "^--$" | head -60 | while IFS= read -r line; do
+        grep -E "error:|^e: |What went wrong|FAILED|Error:|CMake Error|ERROR|Exception" -A6 build.log | grep -v "^--$" | head -60 | while IFS= read -r line; do
           echo "::error::${line:0:900}"
         done
         tail -40 build.log
@@ -213,7 +213,7 @@ jobs:
         N=${{ github.run_number }}
         if [[ "${{ github.ref }}" == "refs/heads/release" ]]; then
           # release notes = message of the release commit (without the first line)
-          NOTES=$(git log -1 --format=%b)
+          NOTES=$(git log -1 --format=%b | grep -v '^Co-Authored-By:' | grep -v '^Claude-Session:' | grep -v '^\[windows\]' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
         elif [[ "${{ github.ref_type }}" == "tag" ]]; then
           # release notes = message of the annotated version tag
           git fetch --force origin "${{ github.ref }}:${{ github.ref }}" 2>/dev/null || true

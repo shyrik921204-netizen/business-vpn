@@ -92,6 +92,7 @@ bool AndroidController::initialize()
         {"onStatus", "(I)V", reinterpret_cast<void *>(onStatus)},
         {"onServiceDisconnected", "()V", reinterpret_cast<void *>(onServiceDisconnected)},
         {"onServiceError", "()V", reinterpret_cast<void *>(onServiceError)},
+        {"onServerInUse", "(Ljava/lang/String;)V", reinterpret_cast<void *>(onServerInUse)},
         {"onVpnPermissionRejected", "()V", reinterpret_cast<void *>(onVpnPermissionRejected)},
         {"onNotificationStateChanged", "()V", reinterpret_cast<void *>(onNotificationStateChanged)},
         {"onVpnStateChanged", "(I)V", reinterpret_cast<void *>(onVpnStateChanged)},
@@ -153,6 +154,11 @@ void AndroidController::stop()
 void AndroidController::resetLastServer(int serverIndex)
 {
     callActivityMethod("resetLastServer", "(I)V", serverIndex);
+}
+
+void AndroidController::installApk(const QString &path)
+{
+    callActivityMethod("installApk", "(Ljava/lang/String;)V", QJniObject::fromString(path).object<jstring>());
 }
 
 void AndroidController::saveFile(const QString &fileName, const QString &data)
@@ -587,6 +593,14 @@ void AndroidController::onServiceError(JNIEnv *env, jobject thiz)
     Q_UNUSED(thiz);
 
     emit AndroidController::instance()->serviceError();
+}
+
+// static
+void AndroidController::onServerInUse(JNIEnv *env, jobject thiz, jstring serverId)
+{
+    Q_UNUSED(thiz);
+    const QString id = AndroidUtils::convertJString(env, serverId);
+    emit AndroidController::instance()->serverInUse(id);
 }
 
 // static

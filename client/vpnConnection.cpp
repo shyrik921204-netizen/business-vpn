@@ -4,6 +4,7 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QHostInfo>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QObject>
 #include <QSharedPointer>
@@ -349,6 +350,36 @@ void VpnConnection::connectToVpn(const QString &serverId, DockerContainer contai
 #endif
 
     appendSplitTunnelingConfig();
+
+#ifdef Q_OS_ANDROID
+    // Sane4ek failover configs: same processing as the main config; values equal to the main
+    // config (DNS, split tunneling, ...) are dropped to keep the message small, the service
+    // takes them from the main config when it switches
+    if (m_vpnConfiguration.contains("sane4ek_fallbacks")) {
+        const QJsonObject mainConfig = m_vpnConfiguration;
+        QJsonArray processed;
+        for (const QJsonValue &value : mainConfig.value("sane4ek_fallbacks").toArray()) {
+            m_vpnConfiguration = value.toObject();
+            appendSplitTunnelingConfig();
+            const QString protoName = m_vpnConfiguration.value(configKey::vpnProto).toString();
+            const QJsonObject data = m_vpnConfiguration.value(protoName + "_config_data").toObject();
+            if (data.value("client_ip").toString().isEmpty()) {
+                continue; // no client key for this server yet
+            }
+            QJsonObject compact;
+            for (auto it = m_vpnConfiguration.constBegin(); it != m_vpnConfiguration.constEnd(); ++it) {
+                if (it.key().endsWith("_config_data") || it.key() == "sane4ek_serverId"
+                    || it.key() == configKey::hostName || it.key() == configKey::description
+                    || mainConfig.value(it.key()) != it.value()) {
+                    compact.insert(it.key(), it.value());
+                }
+            }
+            processed.append(compact);
+        }
+        m_vpnConfiguration = mainConfig;
+        m_vpnConfiguration["sane4ek_fallbacks"] = processed;
+    }
+#endif
 
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(MACOS_NE)
     m_vpnProtocol.reset(VpnProtocol::factory(container, m_vpnConfiguration));

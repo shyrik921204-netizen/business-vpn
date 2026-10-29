@@ -111,6 +111,9 @@ class AmneziaActivity : QtActivity() {
                 Log.d(TAG, "Handle event: $event")
                 when (event) {
                     ServiceEvent.STATUS_CHANGED -> {
+                        msg.data?.getString(MSG_SANE4EK_SERVER_ID)?.takeIf { it.isNotEmpty() }?.let {
+                            QtAndroidController.onServerInUse(it)
+                        }
                         msg.data?.getStatus()?.let { (state) ->
                             Log.d(TAG, "Handle protocol state: $state")
                             QtAndroidController.onVpnStateChanged(state.ordinal)
@@ -118,6 +121,9 @@ class AmneziaActivity : QtActivity() {
                     }
 
                     ServiceEvent.STATUS -> {
+                        msg.data?.getString(MSG_SANE4EK_SERVER_ID)?.takeIf { it.isNotEmpty() }?.let {
+                            QtAndroidController.onServerInUse(it)
+                        }
                         if (isWaitingStatus) {
                             isWaitingStatus = false
                             msg.data?.getStatus()?.let { QtAndroidController.onStatus(it) }
@@ -375,6 +381,11 @@ class AmneziaActivity : QtActivity() {
         super.onResume()
         isActivityResumed = true
         Log.d(TAG, "Resume Amnezia activity")
+        pendingUpdateApk?.let { apk ->
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || packageManager.canRequestPackageInstalls()) {
+                installApk(apk)
+            }
+        }
         if (qtInitialized.isCompleted) {
             QtAndroidController.onActivityResumed()
         }
@@ -737,6 +748,38 @@ class AmneziaActivity : QtActivity() {
     fun saveFile(fileName: String, data: String) {
         Log.d(TAG, "Save file $fileName")
         createFile(fileName, "text/*") { os -> os.bufferedWriter().use { it.write(data) } }
+    }
+
+    // Sane4ek: install a downloaded update. Android first needs the one-time permission
+    // "install unknown apps" for Sane4ek; after it is granted the install continues in onResume.
+    private var pendingUpdateApk: String? = null
+
+    @Suppress("unused")
+    fun installApk(path: String) {
+        Log.d(TAG, "Install update $path")
+        mainScope.launch {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !packageManager.canRequestPackageInstalls()) {
+                pendingUpdateApk = path
+                Toast.makeText(this@AmneziaActivity, getString(R.string.sane4ekAllowInstall), Toast.LENGTH_LONG).show()
+                try {
+                    startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+                } catch (e: ActivityNotFoundException) {
+                    Log.e(TAG, "Unknown sources settings not found: $e")
+                }
+                return@launch
+            }
+            pendingUpdateApk = null
+            launch(Dispatchers.IO) {
+                try {
+                    ApkInstaller.install(applicationContext, File(path))
+                } catch (e: Exception) {
+                    launch(Dispatchers.Main) {
+                        Toast.makeText(this@AmneziaActivity, getString(R.string.sane4ekUpdateFailed) + ": " + e.message,
+                            Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
     }
 
     @Suppress("unused")

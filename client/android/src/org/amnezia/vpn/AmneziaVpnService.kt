@@ -31,6 +31,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
@@ -56,6 +58,7 @@ import org.amnezia.vpn.util.Log
 import org.amnezia.vpn.util.Prefs
 import org.amnezia.vpn.util.net.NetworkState
 import org.amnezia.vpn.util.net.TrafficStats
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -68,6 +71,8 @@ const val MSG_VPN_CONFIG = "VPN_CONFIG"
 const val MSG_ERROR = "ERROR"
 const val MSG_SAVE_LOGS = "SAVE_LOGS"
 const val MSG_CLIENT_NAME = "CLIENT_NAME"
+const val MSG_SANE4EK_SERVER_ID = "SANE4EK_SERVER_ID"
+private const val SERVER_FAILED_PAUSE_MS = 60 * 60 * 1000L
 
 const val AFTER_PERMISSION_CHECK = "AFTER_PERMISSION_CHECK"
 private const val PREFS_CONFIG_KEY = "LAST_CONF"
@@ -88,6 +93,15 @@ open class AmneziaVpnService : VpnService() {
     private var protocolState = MutableStateFlow(UNKNOWN)
     private var serverName: String? = null
     private var serverIndex: Int = -1
+
+    // Sane4ek failover: servers that stopped answering (host -> time) and the config to start
+    // as soon as the current connection is down
+    private val failedServers = ConcurrentHashMap<String, Long>()
+    private var silentDetections = 0
+    private var pendingSwitchConfig: String? = null
+    private var failoverJob: Job? = null
+    private val currentServerId: String
+        get() = parseConfigToJson(Prefs.load(PREFS_CONFIG_KEY))?.optString("sane4ek_serverId").orEmpty()
 
     private val isConnected
         get() = protocolState.value == CONNECTED
@@ -169,6 +183,7 @@ open class AmneziaVpnService : VpnService() {
                             clientMessenger.send {
                                 ServiceEvent.STATUS.packToMessage {
                                     putStatus(this@AmneziaVpnService.protocolState.value)
+                                    putString(MSG_SANE4EK_SERVER_ID, currentServerId)
                                 }
                             }
                         }
@@ -374,6 +389,7 @@ open class AmneziaVpnService : VpnService() {
                 clientMessengers.send {
                     ServiceEvent.STATUS_CHANGED.packToMessage {
                         putStatus(protocolState)
+                        putString(MSG_SANE4EK_SERVER_ID, currentServerId)
                     }
                 }
 
@@ -392,7 +408,13 @@ open class AmneziaVpnService : VpnService() {
                         stopTrafficStatsUpdateJob()
                         stopHealthCheck()
                         // stopSendingStatistics()
-                        if (!isServiceBound) stopService()
+                        val switchConfig = pendingSwitchConfig
+                        if (switchConfig != null) {
+                            pendingSwitchConfig = null
+                            connect(switchConfig)
+                        } else if (!isServiceBound) {
+                            stopService()
+                        }
                     }
 
                     DISCONNECTING -> {
@@ -502,15 +524,16 @@ open class AmneziaVpnService : VpnService() {
                 val rx = stats?.rxBytes ?: -1L
                 val tx = stats?.txBytes ?: -1L
                 val receivedNothing = lastRx >= 0 && rx == lastRx
+                if (lastRx >= 0 && rx > lastRx) silentDetections = 0
                 val sentSomething = lastTx >= 0 && tx > lastTx
                 lastRx = rx
                 lastTx = tx
                 silentChecks = if (age != null && age > 180 && receivedNothing && sentSomething) silentChecks + 1 else 0
                 if (silentChecks >= 3) {
-                    Log.w(TAG, "No answer from the server for 90s, last handshake ${age}s ago, reconnecting")
+                    Log.w(TAG, "No answer from the server for 90s, last handshake ${age}s ago")
                     silentChecks = 0
                     lastRx = -1L; lastTx = -1L
-                    reconnect()
+                    onServerSilent()
                 }
             }
         }
@@ -519,6 +542,103 @@ open class AmneziaVpnService : VpnService() {
     private fun stopHealthCheck() {
         healthCheckJob?.cancel()
         healthCheckJob = null
+    }
+
+    /**
+     * Sane4ek failover. The current server stopped answering: measure the other servers over the
+     * normal network (sockets protected from the VPN) and move to the one with the best ping.
+     * The current server is only left when another one answers, and when it is down itself or a
+     * reconnect to it did not help. If nothing answers, the internet is down: just reconnect.
+     */
+    @MainThread
+    private fun onServerSilent() {
+        if (failoverJob?.isActive == true) return
+        silentDetections++
+        failoverJob = mainScope.launch {
+            val current = parseConfigToJson(Prefs.load(PREFS_CONFIG_KEY))
+            val fallbacks = current?.optJSONArray("sane4ek_fallbacks")
+            if (current == null || fallbacks == null || fallbacks.length() == 0) {
+                reconnect()
+                return@launch
+            }
+            val currentHost = current.optString("hostName")
+            val candidates = (0 until fallbacks.length()).mapNotNull { fallbacks.optJSONObject(it) }
+            val hosts = (listOf(currentHost) + candidates.map { it.optString("hostName") }).filter { it.isNotBlank() }.distinct()
+            val pings = withContext(Dispatchers.IO) {
+                hosts.map { host -> async { host to measurePing(host) } }.awaitAll().toMap()
+            }
+            Log.d(TAG, "Failover pings: $pings")
+            val now = System.currentTimeMillis()
+            val best = candidates
+                .filter { (pings[it.optString("hostName")] ?: -1) > 0 }
+                .filter { now - (failedServers[it.optString("hostName")] ?: 0L) > SERVER_FAILED_PAUSE_MS }
+                .minByOrNull { pings[it.optString("hostName")] ?: Int.MAX_VALUE }
+            val currentAnswers = (pings[currentHost] ?: -1) > 0
+            if (best == null || (currentAnswers && silentDetections < 2)) {
+                Log.d(TAG, "Failover: reconnecting to the same server")
+                reconnect()
+                return@launch
+            }
+            failedServers[currentHost] = now
+            silentDetections = 0
+            switchServer(current, best, candidates)
+        }
+    }
+
+    @MainThread
+    private fun switchServer(current: JSONObject, target: JSONObject, candidates: List<JSONObject>) {
+        val next = JSONObject(target.toString())
+        // settings shared by all servers (DNS, split tunneling, ...) are sent only with the main config
+        current.keys().forEach { key ->
+            if (!next.has(key) && key != "sane4ek_fallbacks" && key != "sane4ek_serverId" && key != "serverIndex" &&
+                !key.endsWith("_config_data")) {
+                next.put(key, current.get(key))
+            }
+        }
+        val rest = JSONArray()
+        candidates.filter { it.optString("hostName") != target.optString("hostName") }.forEach { rest.put(it) }
+        rest.put(JSONObject(current.toString()).apply { remove("sane4ek_fallbacks") })
+        next.put("sane4ek_fallbacks", rest)
+
+        Log.w(TAG, "Server ${current.optString("description")} does not answer, switching to ${target.optString("description")}")
+        val config = next.toString()
+        Prefs.save(PREFS_CONFIG_KEY, config)
+        if (isDisconnected || isUnknown) {
+            connect(config)
+        } else {
+            pendingSwitchConfig = config
+            disconnect()
+        }
+    }
+
+    // average TCP connect time (ms) to the server's agent, SSH or HTTPS port, -1 = no answer
+    private fun measurePing(host: String): Int {
+        for (port in intArrayOf(47443, 22, 443)) {
+            var total = 0L
+            var samples = 0
+            for (attempt in 0 until 3) {
+                val socket = java.net.Socket()
+                try {
+                    socket.bind(null)
+                    protect(socket)
+                    val start = android.os.SystemClock.elapsedRealtime()
+                    socket.connect(java.net.InetSocketAddress(host, port), 2500)
+                    total += android.os.SystemClock.elapsedRealtime() - start
+                    samples++
+                } catch (e: java.net.ConnectException) {
+                    // refused: the host is up, the port is closed; "network unreachable" is not an answer
+                    if (e.message?.contains("refused", ignoreCase = true) != true) break
+                    samples++
+                    total += 1
+                } catch (e: Exception) {
+                    break
+                } finally {
+                    try { socket.close() } catch (_: Exception) {}
+                }
+            }
+            if (samples > 0) return maxOf(1, (total / samples).toInt())
+        }
+        return -1
     }
 
     @MainThread

@@ -8,6 +8,10 @@
 #endif
 
 #include <QDesktopServices>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QStandardPaths>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -144,6 +148,12 @@ void UpdateController::checkForUpdates()
     return;
 #endif
 
+#if !defined(Q_OS_ANDROID)
+    // Sane4ek: published releases carry Android APKs only, desktop builds are installed manually
+    emit updateNotFound();
+    return;
+#endif
+
     if (m_updateCheckRunning) {
         return;
     }
@@ -238,13 +248,17 @@ void UpdateController::startUpdate()
     }
 
 #if defined(Q_OS_ANDROID)
-    // GitHub build on Android: open the release page in a browser, the system downloads the APK.
+    // Sane4ek: download the APK inside the app and install it with the system installer
     if (m_releasePageUrl.isEmpty()) {
         logger.error() << "Release page URL is empty";
         setUpdateState(UpdateState::State::DownloadError);
         return;
     }
-    QDesktopServices::openUrl(QUrl(m_releasePageUrl));
+    if (m_updateState == UpdateState::State::ReadyToInstall && QFile::exists(m_apkPath)) {
+        installUpdate();
+        return;
+    }
+    downloadAndroidApk();
 #elif !defined(Q_OS_IOS) && !defined(MACOS_NE)
     downloadInstaller();
 #endif
@@ -318,8 +332,86 @@ void UpdateController::downloadInstaller()
 #endif
 }
 
+#if defined(Q_OS_ANDROID)
+void UpdateController::downloadAndroidApk()
+{
+    if (m_updateState == UpdateState::State::Downloading) {
+        return;
+    }
+    if (!m_releasePageUrl.endsWith(".apk")) {
+        // no APK in the release: fall back to the release page
+        QDesktopServices::openUrl(QUrl(m_releasePageUrl));
+        return;
+    }
+
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    QDir().mkpath(dir);
+    m_apkPath = dir + "/sane4ek-update.apk";
+    auto *file = new QFile(m_apkPath + ".part", this);
+    if (!file->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        logger.error() << "Cannot write" << file->fileName() << file->errorString();
+        delete file;
+        setUpdateState(UpdateState::State::DownloadError);
+        return;
+    }
+
+    m_downloadProgress = 0;
+    emit downloadProgressChanged();
+    setUpdateState(UpdateState::State::Downloading);
+
+    QNetworkRequest request{QUrl(m_releasePageUrl)};
+    request.setRawHeader("User-Agent", "Sane4ek");
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    request.setTransferTimeout(60000); // no data for a minute
+
+    auto *network = new QNetworkAccessManager(this);
+    QNetworkReply *reply = network->get(request);
+
+    connect(reply, &QNetworkReply::readyRead, this, [reply, file]() { file->write(reply->readAll()); });
+    connect(reply, &QNetworkReply::downloadProgress, this, [this](qint64 received, qint64 total) {
+        const int progress = total > 0 ? static_cast<int>(received * 100 / total) : 0;
+        if (progress != m_downloadProgress) {
+            m_downloadProgress = progress;
+            emit downloadProgressChanged();
+        }
+    });
+    connect(reply, &QNetworkReply::finished, this, [this, reply, network, file]() {
+        file->write(reply->readAll());
+        file->close();
+        reply->deleteLater();
+        network->deleteLater();
+        file->deleteLater();
+
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (reply->error() != QNetworkReply::NoError || status != 200 || file->size() < 1024 * 1024) {
+            logger.error() << "Update download failed:" << reply->errorString() << "HTTP" << status;
+            QFile::remove(file->fileName());
+            setUpdateState(UpdateState::State::DownloadError);
+            return;
+        }
+        QFile::remove(m_apkPath);
+        if (!QFile::rename(file->fileName(), m_apkPath)) {
+            logger.error() << "Cannot rename the downloaded update";
+            setUpdateState(UpdateState::State::DownloadError);
+            return;
+        }
+        logger.info() << "Update downloaded," << QFileInfo(m_apkPath).size() << "bytes";
+        setUpdateState(UpdateState::State::ReadyToInstall);
+        installUpdate();
+    });
+}
+#endif
+
 void UpdateController::installUpdate()
 {
+#if defined(Q_OS_ANDROID)
+    if (m_updateState == UpdateState::State::ReadyToInstall && QFile::exists(m_apkPath)) {
+        AndroidController::instance()->installApk(m_apkPath);
+    } else {
+        startUpdate();
+    }
+    return;
+#endif
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(MACOS_NE)
     if (m_updateState != UpdateState::State::ReadyToInstall) {
         logger.error() << "Installer is not downloaded yet";
