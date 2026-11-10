@@ -1,5 +1,6 @@
 #include "connectionController.h"
 
+#include <QDebug>
 #include <QJsonArray>
 #include <QJsonDocument>
 
@@ -36,6 +37,25 @@ ConnectionController::ConnectionController(SecureServersRepository* serversRepos
 #ifdef Q_OS_ANDROID
     connect(this, &ConnectionController::restoreConnectionRequested, m_vpnConnection, &VpnConnection::restoreConnection, Qt::QueuedConnection);
 #endif
+
+    m_protocolProbe = new QTimer(this);
+    m_protocolProbe->setSingleShot(true);
+    connect(m_protocolProbe, &QTimer::timeout, this, &ConnectionController::onProtocolProbeTimeout);
+    connect(m_vpnConnection, &VpnConnection::bytesChanged, this, [this](quint64 receivedBytes, quint64 sentBytes) {
+        if (m_lastState != Vpn::ConnectionState::Connected) {
+            return;
+        }
+        m_probeRxSeen = m_probeRxSeen || receivedBytes > 0;
+        m_probeTxSeen = m_probeTxSeen || sentBytes > 0;
+    });
+    connect(m_vpnConnection, &VpnConnection::connectionStateChanged, this, [this](Vpn::ConnectionState state) {
+        m_lastState = state;
+        if (state == Vpn::ConnectionState::Disconnected && !m_reconnectServerId.isEmpty()) {
+            const QString id = m_reconnectServerId;
+            m_reconnectServerId.clear();
+            QTimer::singleShot(500, this, [this, id]() { openConnection(id); });
+        }
+    });
 }
 
 bool ConnectionController::isConnected() const
@@ -244,12 +264,85 @@ ErrorCode ConnectionController::openConnection(const QString &serverId)
         PayloadSender::sendAll(apiV2->sendPayload);
     }
 
+    startProtocolProbe(serverId, container);
     emit openConnectionRequested(serverId, container, vpnConfiguration);
     return ErrorCode::NoError;
 }
 
+void ConnectionController::startProtocolProbe(const QString &serverId, DockerContainer container)
+{
+    stopProtocolProbe();
+    if (container != DockerContainer::Awg && container != DockerContainer::Awg2) {
+        return;
+    }
+    const auto json = m_serversRepository->serverJsonById(serverId);
+    if (!json.has_value() || !isContainerSupported(DockerContainer::Xray)) {
+        return;
+    }
+    bool hasXray = false;
+    for (const QJsonValue &c : json->value(configKey::containers).toArray()) {
+        hasXray = hasXray || c.toObject().value(configKey::container).toString() == configKey::amneziaXray;
+    }
+    if (!hasXray) {
+        return;
+    }
+    m_probeServerId = serverId;
+    m_probeRxSeen = false;
+    m_probeTxSeen = false;
+    m_protocolProbe->start(20000);
+}
+
+void ConnectionController::stopProtocolProbe()
+{
+    m_protocolProbe->stop();
+    m_probeServerId.clear();
+}
+
+void ConnectionController::onProtocolProbeTimeout()
+{
+    const QString serverId = m_probeServerId;
+    m_probeServerId.clear();
+    if (serverId.isEmpty()) {
+        return;
+    }
+    // Desktop: stays "Connecting" until the AmneziaWG handshake, which never comes when it is blocked.
+    // Android: reports "Connected" at once, but then the phone sends and nothing at all comes back.
+    // Without traffic statistics only the first case is detected (no false switches).
+    const bool blocked = m_lastState == Vpn::ConnectionState::Connecting
+            || m_lastState == Vpn::ConnectionState::Preparing || m_lastState == Vpn::ConnectionState::Error
+            || (m_lastState == Vpn::ConnectionState::Connected && m_probeTxSeen && !m_probeRxSeen);
+    if (!blocked) {
+        return;
+    }
+    qWarning() << "Sane4ek: AmneziaWG does not get through, switching the server to Reality";
+    if (!switchServerToXray(serverId)) {
+        return;
+    }
+    if (m_lastState == Vpn::ConnectionState::Disconnected || m_lastState == Vpn::ConnectionState::Error) {
+        openConnection(serverId);
+    } else {
+        m_reconnectServerId = serverId;
+        closeConnection();
+    }
+}
+
+bool ConnectionController::switchServerToXray(const QString &serverId)
+{
+    auto json = m_serversRepository->serverJsonById(serverId);
+    if (!json.has_value()) {
+        return false;
+    }
+    // remembered for this server: next connections start with Reality right away
+    // (the user can still pick AmneziaWG again in the server's protocol list)
+    QJsonObject config = *json;
+    config[configKey::defaultContainer] = QString(configKey::amneziaXray);
+    m_serversRepository->editServer(serverId, config, m_serversRepository->serverKind(serverId));
+    return true;
+}
+
 void ConnectionController::closeConnection()
 {
+    stopProtocolProbe();
     if (m_vpnConnection) {
         emit closeConnectionRequested();
     }

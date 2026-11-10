@@ -111,7 +111,11 @@ private:
                   const std::function<void(int status, const QJsonObject &reply)> &callback);
     void registerOnServers(const QJsonObject &manifest);
     void applyRegistrations(const QJsonObject &manifest, const QMap<QString, QString> &configs,
-                            const QSet<QString> &revokedKeys, const QStringList &failed);
+                            const QMap<QString, QString> &xrayLinks, const QSet<QString> &revokedKeys,
+                            const QStringList &failed);
+    // adds the server's VLESS + Reality protocol next to AmneziaWG in the same server entry
+    void addXrayContainer(QJsonObject &config, const QString &xrayLink, const QString &host) const;
+    static void keepDefaultContainer(QJsonObject &config, const QJsonObject &existing);
     void removeAllManagedServers();
 
     QByteArray adminSigningSeed();

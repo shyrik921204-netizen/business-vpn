@@ -52,6 +52,7 @@ import org.amnezia.vpn.protocol.ProtocolState.RECONNECTING
 import org.amnezia.vpn.protocol.ProtocolState.UNKNOWN
 import org.amnezia.vpn.protocol.VpnException
 import org.amnezia.vpn.protocol.VpnStartException
+import org.amnezia.vpn.protocol.putStatistics
 import org.amnezia.vpn.protocol.putStatus
 import org.amnezia.vpn.util.LoadLibraryException
 import org.amnezia.vpn.util.Log
@@ -401,12 +402,14 @@ open class AmneziaVpnService : VpnService() {
                         // if (isActivityConnected) launchSendingStatistics()
                         launchTrafficStatsUpdate()
                         launchHealthCheck()
+                        launchProbeStatistics()
                     }
 
                     DISCONNECTED -> {
                         networkState.unbindNetworkListener()
                         stopTrafficStatsUpdateJob()
                         stopHealthCheck()
+                        probeStatisticsJob?.cancel()
                         // stopSendingStatistics()
                         val switchConfig = pendingSwitchConfig
                         if (switchConfig != null) {
@@ -534,6 +537,26 @@ open class AmneziaVpnService : VpnService() {
                     silentChecks = 0
                     lastRx = -1L; lastTx = -1L
                     onServerSilent()
+                }
+            }
+        }
+    }
+
+    // Sane4ek: for 30 seconds after connecting the app gets the traffic counters. If the phone sends
+    // and nothing comes back, AmneziaWG is blocked and the app moves the server to VLESS + Reality.
+    private var probeStatisticsJob: Job? = null
+
+    @MainThread
+    private fun launchProbeStatistics() {
+        probeStatisticsJob?.cancel()
+        if (!isActivityConnected) return
+        probeStatisticsJob = mainScope.launch {
+            repeat(10) {
+                delay(3_000)
+                if (!isConnected) return@launch
+                val stats = withContext(Dispatchers.IO) { vpnProto?.protocol?.statistics } ?: return@launch
+                clientMessengers.send {
+                    ServiceEvent.STATISTICS_UPDATE.packToMessage { putStatistics(stats) }
                 }
             }
         }

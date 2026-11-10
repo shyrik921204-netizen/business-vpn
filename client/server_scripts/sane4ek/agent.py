@@ -24,6 +24,8 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
+from urllib.parse import quote
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 DATA_DIR = os.environ.get("SANE4EK_DATA", "/data")
@@ -39,6 +41,15 @@ AWG_TARGETS = [
 ]
 CLIENTS_TABLE = "/opt/amnezia/awg/clientsTable"
 DNS = "1.1.1.1, 1.0.0.1"
+
+# Xray (VLESS + Reality), installed by the admin app as the "XRay" protocol. Optional: when it
+# runs on the server every device also gets its own VLESS user, so the client can switch to it
+# when AmneziaWG is blocked.
+XRAY_CONTAINER = "amnezia-xray"
+XRAY_CONF = "/opt/amnezia/xray/server.json"
+XRAY_STAGED = "/opt/amnezia/xray/server.sane4ek.json"
+XRAY_PUBLIC_KEY = "/opt/amnezia/xray/xray_public.key"
+XRAY_NAMESPACE = uuid.UUID("5a4e4ec0-7c2b-4f1e-9a63-3d5e0b2f8a11")
 
 # Interface keys copied from the server config to the client config
 CLIENT_KEYS = ["Jc", "Jmin", "Jmax", "S1", "S2", "S3", "S4", "H1", "H2", "H3", "H4",
@@ -236,6 +247,107 @@ def client_config(iface, server_pub, psk, client_ip, port):
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------- xray
+def xray_client_id(token_hash, device):
+    """The same device of the same invite always gets the same VLESS id."""
+    return str(uuid.uuid5(XRAY_NAMESPACE, "%s:%s" % (token_hash, device)))
+
+
+def xray_load():
+    """Server config of the running Xray container, None if there is none or it is not Reality."""
+    if XRAY_CONTAINER not in running_containers():
+        return None
+    try:
+        conf = json.loads(cread(XRAY_CONTAINER, XRAY_CONF) or "null")
+        inbound = conf["inbounds"][0]
+        stream = inbound.get("streamSettings") or {}
+    except (ValueError, KeyError, IndexError, TypeError):
+        return None
+    if inbound.get("protocol") != "vless" or stream.get("security") != "reality":
+        return None
+    return conf
+
+
+def xray_save(conf):
+    """Check the new config with xray itself before it replaces the live one, then restart."""
+    cwrite(XRAY_CONTAINER, XRAY_STAGED, json.dumps(conf, ensure_ascii=False, indent=2))
+    out = docker("exec", "-i", XRAY_CONTAINER, "sh", "-c",
+                 'if xray -test -format json -config "$0" >/dev/null 2>&1; then mv -f "$0" "$1" && echo OK; '
+                 'else rm -f "$0"; echo BAD; fi', XRAY_STAGED, XRAY_CONF, check=False)
+    if "OK" not in out:
+        raise RuntimeError("xray rejected the new config")
+    docker("restart", "-t", "2", XRAY_CONTAINER)
+
+
+def xray_link(conf, client_id, flow):
+    """vless:// link for the client; the host is filled in by the app (the address it knows)."""
+    inbound = conf["inbounds"][0]
+    stream = inbound.get("streamSettings") or {}
+    reality = stream.get("realitySettings") or {}
+    public_key = cread(XRAY_CONTAINER, XRAY_PUBLIC_KEY).strip()
+    server_names = reality.get("serverNames") or []
+    short_ids = reality.get("shortIds") or [""]
+    if not public_key or not server_names:
+        return None
+    network = stream.get("network") or "raw"
+    params = [("encryption", "none"), ("security", "reality"), ("sni", server_names[0]),
+              ("fp", "chrome"), ("pbk", public_key), ("sid", short_ids[0]),
+              ("type", "tcp" if network in ("raw", "tcp") else network)]
+    if flow:
+        params.append(("flow", flow))
+    if network == "xhttp":
+        xs = stream.get("xhttpSettings") or {}
+        for key in ("path", "host", "mode"):
+            if xs.get(key):
+                params.append((key, xs[key]))
+    elif network == "grpc":
+        gs = stream.get("grpcSettings") or {}
+        if gs.get("serviceName"):
+            params.append(("serviceName", gs["serviceName"]))
+    elif network in ("ws", "httpupgrade"):
+        ws = stream.get("%sSettings" % network) or {}
+        if ws.get("path"):
+            params.append(("path", ws["path"]))
+    query = "&".join("%s=%s" % (k, quote(str(v), safe="")) for k, v in params)
+    return "vless://%s@__SANE4EK_HOST__:%s?%s#Sane4ek-Reality" % (client_id, inbound.get("port", 443), query)
+
+
+def xray_register(token_hash, device):
+    """Add the device as a VLESS user (if Xray runs here). Returns (client id, link) or (None, None)."""
+    conf = xray_load()
+    if conf is None:
+        return None, None
+    client_id = xray_client_id(token_hash, device)
+    settings = conf["inbounds"][0].setdefault("settings", {})
+    clients = settings.setdefault("clients", [])
+    # same flow as the admin's own user (xtls-rprx-vision for raw/tcp)
+    flow = next((c.get("flow") for c in clients if c.get("flow")), "")
+    if not any(c.get("id") == client_id for c in clients):
+        entry = {"id": client_id}
+        if flow:
+            entry["flow"] = flow
+        clients.append(entry)
+        xray_save(conf)
+        log("xray user added", client_id)
+    return client_id, xray_link(conf, client_id, flow)
+
+
+def xray_remove(client_ids):
+    client_ids = {c for c in client_ids if c}
+    if not client_ids:
+        return
+    conf = xray_load()
+    if conf is None:
+        return
+    settings = conf["inbounds"][0].setdefault("settings", {})
+    clients = settings.get("clients") or []
+    kept = [c for c in clients if c.get("id") not in client_ids]
+    if len(kept) != len(clients):
+        settings["clients"] = kept
+        xray_save(conf)
+        log("xray users removed", len(clients) - len(kept))
+
+
 def register(token, device, pubkey, name):
     inv = find_invite(token)
     if inv is None:
@@ -288,13 +400,26 @@ def register(token, device, pubkey, name):
                 "userData": {"clientName": "Sane4ek: %s (%s)" % (inv.get("name", ""), name),
                              "creationDate": datetime.datetime.now().strftime("%a %b %d %H:%M:%S %Y")}})
 
-        regs = [r for r in regs if not (r["tokenHash"] == inv["hash"] and r["device"] == device)]
-        regs.append({"tokenHash": inv["hash"], "device": device, "pubkey": pubkey,
-                     "ip": client_ip, "name": name, "time": int(time.time())})
-        save_json("registrations.json", regs)
-        log("registered", inv.get("name", "?"), name, client_ip)
+        # Xray is a bonus: AmneziaWG keys are handed out even when it fails
+        xray_id, xray = None, None
+        try:
+            xray_id, xray = xray_register(inv["hash"], device)
+        except Exception as e:
+            log("xray error:", e)
 
-        return 200, {"config": client_config(iface, server_pub, psk, client_ip, iface["ListenPort"])}
+        regs = [r for r in regs if not (r["tokenHash"] == inv["hash"] and r["device"] == device)]
+        reg = {"tokenHash": inv["hash"], "device": device, "pubkey": pubkey,
+               "ip": client_ip, "name": name, "time": int(time.time())}
+        if xray_id:
+            reg["xrayId"] = xray_id
+        regs.append(reg)
+        save_json("registrations.json", regs)
+        log("registered", inv.get("name", "?"), name, client_ip, "+xray" if xray else "")
+
+        reply = {"config": client_config(iface, server_pub, psk, client_ip, iface["ListenPort"])}
+        if xray:
+            reply["xray"] = xray
+        return 200, reply
 
 
 def sync_revoked():
@@ -314,6 +439,10 @@ def sync_revoked():
         cwrite(container, conf_path, remove_peer_blocks(text, keys))
         syncconf(target)
         update_clients_table(container, remove=keys)
+        try:
+            xray_remove(r.get("xrayId") for r in revoked)
+        except Exception as e:
+            log("xray revoke error:", e)
         save_json("registrations.json", [r for r in regs if r["tokenHash"] in valid])
         log("revoked", len(keys), "peer(s)")
 

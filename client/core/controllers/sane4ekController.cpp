@@ -869,7 +869,7 @@ void Sane4ekController::registerOnServers(const QJsonObject &manifest)
     store().setValue("client/version", manifest.value("version").toInteger());
 
     if (servers.isEmpty()) {
-        applyRegistrations(manifest, {}, {}, {});
+        applyRegistrations(manifest, {}, {}, {}, {});
         return;
     }
 
@@ -878,6 +878,7 @@ void Sane4ekController::registerOnServers(const QJsonObject &manifest)
         int pending = 0;
         QStringList failed;
         QMap<QString, QString> configs;
+        QMap<QString, QString> xrayLinks;
         QSet<QString> revoked;
     };
     auto state = std::make_shared<State>();
@@ -897,6 +898,11 @@ void Sane4ekController::registerOnServers(const QJsonObject &manifest)
             const QString error = reply.value("error").toString();
             if (status == 200 && !config.isEmpty()) {
                 state->configs.insert(key, config);
+                // VLESS + Reality of the same server (only when the admin installed XRay on it)
+                const QString xray = reply.value("xray").toString();
+                if (xray.startsWith(QLatin1String("vless://"))) {
+                    state->xrayLinks.insert(key, xray);
+                }
             } else if (status == 403 && error == "device limit") {
                 state->failed.append(tr("%1 (device limit of the invite reached)").arg(name));
             } else if (status == 403) {
@@ -914,13 +920,14 @@ void Sane4ekController::registerOnServers(const QJsonObject &manifest)
             }
             qWarning() << "Sane4ek: register on" << name << "status" << status << error;
             if (--state->pending == 0) {
-                applyRegistrations(manifest, state->configs, state->revoked, state->failed);
+                applyRegistrations(manifest, state->configs, state->xrayLinks, state->revoked, state->failed);
             }
         });
     }
 }
 
 void Sane4ekController::applyRegistrations(const QJsonObject &manifest, const QMap<QString, QString> &configs,
+                                           const QMap<QString, QString> &xrayLinks,
                                            const QSet<QString> &revokedKeys, const QStringList &failed)
 {
     QJsonObject managed = readObject("client/managed");
@@ -947,19 +954,27 @@ void Sane4ekController::applyRegistrations(const QJsonObject &manifest, const QM
         }
         QJsonObject config = result.config;
         config[configKey::description] = s.value("name").toString();
+        addXrayContainer(config, xrayLinks.value(key), s.value("h").toString());
         const auto kind = serverConfigUtils::configTypeFromJson(config);
 
         const QString localId = managed.value(key).toString();
         if (!localId.isEmpty() && m_serversRepository->indexOfServerId(localId) >= 0) {
             const auto existing = m_serversRepository->serverJsonById(localId);
+            if (existing.has_value()) {
+                keepDefaultContainer(config, *existing); // the protocol the user (or auto-switch) picked
+            }
             if (!existing.has_value() || existing->value(configKey::containers) != config.value(configKey::containers)
-                || existing->value(configKey::description) != config.value(configKey::description)) {
+                || existing->value(configKey::description) != config.value(configKey::description)
+                || existing->value(configKey::defaultContainer) != config.value(configKey::defaultContainer)) {
                 m_serversRepository->editServer(localId, config, kind);
             }
         } else if (const QString sameHostId = existingServerIdForHost(s.value("h").toString()); !sameHostId.isEmpty()) {
             // The same server is already in the list: no duplicates. A server the user manages over SSH
             // is left alone, any other entry (e.g. an old shared key) is replaced by the personal key.
             if (m_serversRepository->serverKind(sameHostId) != serverConfigUtils::ConfigType::SelfHostedAdmin) {
+                if (const auto existing = m_serversRepository->serverJsonById(sameHostId); existing.has_value()) {
+                    keepDefaultContainer(config, *existing);
+                }
                 m_serversRepository->editServer(sameHostId, config, kind);
                 managed[key] = sameHostId;
             }
@@ -997,6 +1012,39 @@ void Sane4ekController::applyRegistrations(const QJsonObject &manifest, const QM
     }
     if (activeRemoved) {
         emit activeServerRemoved();
+    }
+}
+
+void Sane4ekController::addXrayContainer(QJsonObject &config, const QString &xrayLink, const QString &host) const
+{
+    if (xrayLink.isEmpty() || host.isEmpty()) {
+        return;
+    }
+    QString link = xrayLink;
+    link.replace(hostPlaceholder, host);
+    const ImportController::ImportResult xray = m_importController->extractConfigFromData(link);
+    if (xray.errorCode != ErrorCode::NoError || xray.config.isEmpty()) {
+        qWarning() << "Sane4ek: failed to parse the Reality config for" << host;
+        return;
+    }
+    QJsonArray containers = config.value(configKey::containers).toArray();
+    for (const QJsonValue &c : xray.config.value(configKey::containers).toArray()) {
+        containers.append(c);
+    }
+    config[configKey::containers] = containers;
+}
+
+void Sane4ekController::keepDefaultContainer(QJsonObject &config, const QJsonObject &existing)
+{
+    const QString previous = existing.value(configKey::defaultContainer).toString();
+    if (previous.isEmpty() || previous == config.value(configKey::defaultContainer).toString()) {
+        return;
+    }
+    for (const QJsonValue &c : config.value(configKey::containers).toArray()) {
+        if (c.toObject().value(configKey::container).toString() == previous) {
+            config[configKey::defaultContainer] = previous;
+            return;
+        }
     }
 }
 

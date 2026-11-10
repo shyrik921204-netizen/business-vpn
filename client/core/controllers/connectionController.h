@@ -2,6 +2,7 @@
 #define CONNECTIONCONTROLLER_H
 
 #include <QObject>
+#include <QTimer>
 #include <QJsonObject>
 #include <QPair>
 #include <memory>
@@ -79,6 +80,20 @@ private:
     SecureServersRepository* m_serversRepository;
     SecureAppSettingsRepository* m_appSettingsRepository;
     VpnConnection* m_vpnConnection;
+
+    // Sane4ek: when AmneziaWG is blocked (no handshake / nothing comes back) on a server that also
+    // has VLESS + Reality, the server is switched to Reality and connected again
+    void startProtocolProbe(const QString &serverId, DockerContainer container);
+    void stopProtocolProbe();
+    void onProtocolProbeTimeout();
+    bool switchServerToXray(const QString &serverId);
+
+    QTimer *m_protocolProbe = nullptr;
+    QString m_probeServerId;
+    bool m_probeRxSeen = false;
+    bool m_probeTxSeen = false;
+    QString m_reconnectServerId;
+    Vpn::ConnectionState m_lastState = Vpn::ConnectionState::Disconnected;
 };
 
 #endif
